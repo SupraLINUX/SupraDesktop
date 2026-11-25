@@ -1,0 +1,2 @@
+# ADR-0019 — Separación de repositorios
+Estado ACCEPTED: SupraLINUX/SupraDesktop es escritorio independiente y SupraLINUX/SupraLINUX es distribución oficial. El nombre provisional SupraOS queda descartado. Distro consume versiones fijadas de escritorio; SDK/tokens/acciones canónicos en escritorio, integración opcional por proveedor, CI independiente. No migrar instalaciones antiguas ni crear forks sin autorización. [Fronteras](../architecture/REPOSITORY_BOUNDARIES.md). Contratos técnicos PROPOSED, no implementación.
