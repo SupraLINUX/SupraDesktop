@@ -42,4 +42,4 @@ Consultar [puertas](testing/SUBSYSTEM_VALIDATION.md) para ordenar experimentos p
 [Repositorios](architecture/REPOSITORY_BOUNDARIES.md) y [laboratorio](testing/VALIDATION_LAB.md). M12 escritorio entrega paquete/integración reproducible; track D entrega imagen/ISO y release de distribución. Evitar que M12 obligue al escritorio a depender de Arkdep. Medición macOS nativa pendiente, fixtures sintéticos pueden comenzar.
 
 ## Separación ratificada
-Track D se ejecuta en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/distribution/VALIDATION.md), con CI y releases propios. M12 solo empaquetado/integración portable de escritorio. No bloquear compositor por distro ni viceversa. Nombre definitivo SupraLINUX; repositorio de la organización ya existente.
+Track D se ejecuta en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/main/docs/distribution/VALIDATION.md), con CI y releases propios. M12 solo empaquetado/integración portable de escritorio. No bloquear compositor por distro ni viceversa. Nombre definitivo SupraLINUX; repositorio de la organización ya existente.
