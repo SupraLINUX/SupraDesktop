@@ -1,0 +1,2 @@
+# Visual measurement fixtures
+The CPU-only ssim_roi_demo.py requires NumPy and scikit-image in an isolated Python environment. It demonstrates why global SSIM cannot certify a localized visual defect. Expected values recorded in [M01](../../docs/research/M01_GRAPHICS_VALIDATION.md). This is not a native macOS capture or a compositor benchmark. Record versions when rerunning; no production dependency.
