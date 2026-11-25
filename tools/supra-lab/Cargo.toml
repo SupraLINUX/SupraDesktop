@@ -1,0 +1,11 @@
+[package]
+name = "supra-lab"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+supra-geometry = { path = "../../crates/supra-geometry" }
+
+[lints]
+workspace = true

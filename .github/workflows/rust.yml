@@ -1,0 +1,44 @@
+name: Rust experimental validation
+on:
+  push:
+    paths: ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates/**', 'tools/supra-lab/**', '.github/workflows/rust.yml']
+  pull_request:
+    paths: ['Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml', 'crates/**', 'tools/supra-lab/**', '.github/workflows/rust.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  geometry:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - run: rustc --version && cargo --version
+      - run: cargo test --workspace --locked
+      - run: cargo clippy --workspace --all-targets --locked -- -D warnings
+      - run: cargo run --locked -p supra-lab -- evidence
+      - name: Verify deterministic fixture
+        run: |
+          cargo run --locked -p supra-lab -- evidence-repeat
+          cmp evidence/geometry.ppm evidence-repeat/geometry.ppm
+          sha256sum evidence/geometry.ppm > evidence/sha256.txt
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct, zlib
+          data = Path('evidence/geometry.ppm').read_bytes()
+          header = b'P6\n640 360\n255\n'
+          assert data.startswith(header) and len(data) == len(header) + 640*360*3
+          pixels = data[len(header):]
+          def chunk(t, d):
+              return struct.pack('>I', len(d)) + t + d + struct.pack('>I', zlib.crc32(t+d)&0xffffffff)
+          raw = b''.join(b'\0'+pixels[y*1920:(y+1)*1920] for y in range(360))
+          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR',struct.pack('>IIBBBBB',640,360,8,2,0,0,0)) + chunk(b'IDAT',zlib.compress(raw)) + chunk(b'IEND',b'')
+          Path('evidence/geometry.png').write_bytes(png)
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: supra-lab-geometry
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn

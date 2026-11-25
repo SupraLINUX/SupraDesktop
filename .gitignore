@@ -14,3 +14,6 @@
 .idea/
 .vscode/
 **/__pycache__/
+
+/evidence/
+/evidence-repeat/

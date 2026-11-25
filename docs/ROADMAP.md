@@ -43,3 +43,6 @@ Consultar [puertas](testing/SUBSYSTEM_VALIDATION.md) para ordenar experimentos p
 
 ## Separación ratificada
 Track D se ejecuta en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/distribution/VALIDATION.md), con CI y releases propios. M12 solo empaquetado/integración portable de escritorio. No bloquear compositor por distro ni viceversa. Nombre definitivo SupraLINUX; repositorio de la organización ya existente.
+
+## Inicio de M01 — 2026-11-25
+Workspace Rust, supra-geometry y supra-lab implementados como primer corte CPU; CI verifica tests, determinismo y artefactos. No implica M01 PASS ni fidelidad macOS. [Laboratorio](../tools/supra-lab/README.md). Licencia pendiente antes de importar dependencias.
