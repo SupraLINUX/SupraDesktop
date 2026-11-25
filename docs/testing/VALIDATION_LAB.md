@@ -25,4 +25,4 @@ Compositor anidado y headless, fixtures sintéticos sin datos personales. Smitha
 No cerrar por documentación o compilación. No exigir todos los casos de release para comenzar un PoC sintético. CI documental es distinta de CI de ejecución.
 
 ## Propiedad de pruebas
-Distro ejecuta D-P0–D-P6 en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/distribution/PROTOTYPE_GATES.md); este documento conserva gates transversales y del escritorio. No duplicar resultados ni confundir estados. Todos NOT_RUN.
+Distro ejecuta D-P0–D-P6 en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/main/docs/distribution/PROTOTYPE_GATES.md); este documento conserva gates transversales y del escritorio. No duplicar resultados ni confundir estados. Todos NOT_RUN.
