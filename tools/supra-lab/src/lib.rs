@@ -1,4 +1,6 @@
 //! Deterministic CPU-only geometry fixture. Not a desktop screenshot.
+pub mod optics;
+
 use supra_geometry::{Corner, RoundedRect};
 
 pub const WIDTH: usize = 640;

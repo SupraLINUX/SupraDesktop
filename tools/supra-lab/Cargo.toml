@@ -7,5 +7,7 @@ rust-version.workspace = true
 [dependencies]
 supra-geometry = { path = "../../crates/supra-geometry" }
 
+supra-glass = { path = "../../crates/supra-glass" }
+
 [lints]
 workspace = true

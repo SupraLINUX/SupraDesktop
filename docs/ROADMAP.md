@@ -46,3 +46,5 @@ Track D se ejecuta en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob
 
 ## Inicio de M01 — 2026-11-25
 Workspace Rust, supra-geometry y supra-lab implementados como primer corte CPU; CI verifica tests, determinismo y artefactos. No implica M01 PASS ni fidelidad macOS. [Laboratorio](../tools/supra-lab/README.md). Licencia pendiente antes de importar dependencias.
+
+M01 second increment: CPU Gaussian reference and local G2 cubic candidate, independent geometry/glass crates and three deterministic fixtures. CI pending. M01 full gate and M02 still pending.

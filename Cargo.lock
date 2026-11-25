@@ -7,8 +7,13 @@ name = "supra-geometry"
 version = "0.0.1"
 
 [[package]]
+name = "supra-glass"
+version = "0.0.1"
+
+[[package]]
 name = "supra-lab"
 version = "0.0.1"
 dependencies = [
  "supra-geometry",
+ "supra-glass",
 ]

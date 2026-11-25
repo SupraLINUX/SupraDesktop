@@ -4,6 +4,7 @@
 pub enum Corner {
     Circular,
     Continuous,
+    BezierG2,
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -37,7 +38,7 @@ impl RoundedRect {
         self.radius
     }
 
-    /// Membership, not a signed distance. Local corner superellipse with n=4.
+    /// Membership, not a signed distance; all models are local corner candidates.
     pub fn contains(self, x: f64, y: f64) -> bool {
         if !x.is_finite()
             || !y.is_finite()
@@ -60,6 +61,9 @@ impl RoundedRect {
         match self.corner {
             Corner::Circular => dx * dx + dy * dy <= 1.0,
             Corner::Continuous => dx.powi(4) + dy.powi(4) <= 1.0,
+            // Cubic from (0,1) to (1,0), both control points at (0,0).
+            // x=t^3, y=(1-t)^3: zero endpoint curvature and tangent to straight edges.
+            Corner::BezierG2 => (1.0 - dx).max(0.0).cbrt() + (1.0 - dy).max(0.0).cbrt() >= 1.0,
         }
     }
 
@@ -99,7 +103,7 @@ mod tests {
 
     #[test]
     fn symmetry_and_bounds() {
-        for corner in [Corner::Circular, Corner::Continuous] {
+        for corner in [Corner::Circular, Corner::Continuous, Corner::BezierG2] {
             let r = RoundedRect::new(120.0, 60.0, 18.0, corner).unwrap();
             for y in 0..60 {
                 for x in 0..120 {
@@ -125,6 +129,20 @@ mod tests {
         assert_eq!(s.coverage(50.0, 50.0, 1.0), 1.0);
         assert_eq!(s.coverage(-10.0, -10.0, 1.0), 0.0);
         assert_eq!(s.coverage(50.0, 50.0, f64::NAN), 0.0);
+    }
+
+    #[test]
+    fn bezier_candidate_boundary_and_inside() {
+        let r = RoundedRect::new(100.0, 100.0, 24.0, Corner::BezierG2).unwrap();
+        for i in 1..20 {
+            let t = f64::from(i) / 20.0;
+            let x = 24.0 * t.powi(3);
+            let y = 24.0 * (1.0 - t).powi(3);
+            assert!(r.contains(x + 0.001, y + 0.001));
+            assert!(!r.contains(x - 0.001, y - 0.001));
+        }
+        assert!(r.contains(4.0, 4.0));
+        assert!(!r.contains(1.0, 1.0));
     }
 
     #[test]
