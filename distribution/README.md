@@ -1,3 +1,5 @@
-# Distribución oficial candidata
+# Documento trasladado a SupraLINUX
 
-Área reservada para prototipos de imagen, configuración de despliegue, installer y pruebas. No contiene una distribución arrancable. [Diseño](../docs/distribution/README.md). No modificar SupraLINUX existente ni publicar releases.
+La documentación canónica de la distribución se encuentra en [distribution/README.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/distribution/README.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/distribution/README.md).

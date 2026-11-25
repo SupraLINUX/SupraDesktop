@@ -1,5 +1,5 @@
-# ADR-0013 — Plataforma oficial Arch atómica
-Estado: PROPOSED para la distribución y detalles técnicos. Preferencias explícitas del mantenedor: Arch, paquetes congelados, actualizaciones atómicas, Applications universal, Flatpak/AppImage/AppDir/SupraBundle opcional y AUR opcional; retirar .deb del plan oficial. No implica migrar SupraLINUX actual ni elegir nombre definitivo.
-SupraDesktop sigue independiente. Comparar Arkdep Btrfs, RAUC A/B y systemd-sysupdate; Arkdep candidato inicial, no seleccionado. Congelar conjuntos coherentes Arch Archive y repositorio propio firmado, no partial upgrades. Base de solo lectura, estado mutable explícito, rollback bootable con prueba de datos/migraciones. Kernel LTS candidato, kernel actual si hardware lo requiere. No prometer control absoluto sobre hardware o drivers propietarios. [Diseño](../distribution/README.md). Validar D00–D12 antes de publicar.
+# Documento trasladado a SupraLINUX
 
-El mantenedor ratificó mantener escritorio y distribución como proyectos separados y delegó criterio de backend. Estado ACCEPTED para separación de proyectos; PROPOSED para Arkdep/RAUC/sysupdate, kernel y almacenamiento. [Comparativa](../distribution/BACKEND_EVALUATION.md).
+La documentación canónica de la distribución se encuentra en [docs/decisions/0013-atomic-arch.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0013-atomic-arch.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0013-atomic-arch.md).

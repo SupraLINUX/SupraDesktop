@@ -1,2 +1,5 @@
-# ADR-0015 — SupraLayers
-Estado PROPOSED para implementación; política de libertad de instalación ACCEPTED. Adoptar semántica de rpm-ostree sobre paquetes Arch, no RPM ni nuevo formato. Prototipar Arkdep adaptado; si no satisface gates, RAUC/sysupdate y composición propia acotada. Manifiesto efectivo por despliegue, intención separada, resolver snapshot exacto, stage fuera de activo, falla de capa no se silencia, rollback preserva documentos. [Contrato](../distribution/PACKAGE_LAYERING.md). No imponer contenedor ni preinstalar módulos por ejemplo.
+# Documento trasladado a SupraLINUX
+
+La documentación canónica de la distribución se encuentra en [docs/decisions/0015-layered-deployments.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0015-layered-deployments.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0015-layered-deployments.md).

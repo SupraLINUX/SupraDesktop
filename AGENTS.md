@@ -22,3 +22,5 @@
 16. Beginner First / Advanced When Needed: instalación, actualización y recuperación deben ser gráficas, accesibles y comprensibles, sin exigir terminal; no ocultar riesgos ni fingir progreso. No alterar lógica de particionado por motivos visuales. Para elegir backend de despliegue, consultar docs/distribution/ARKDEP_SOURCE_REVIEW.md y PROTOTYPE_GATES.md; no habilitar layer/unlayer in-place. No crear repos ni fusionar PR sin autorización.
 
 17. Mantener independencia de repositorios: distro consume versiones fijadas de SupraDesktop; no duplicar tokens/SDK ni acoplar escritorio a backend de despliegue. Segundo repo propuesto, no creado. No iniciar firmware real, modificar discos host ni usar claves productivas durante prototipos. Leer docs/testing/VALIDATION_LAB.md.
+
+18. Repositorios oficiales ratificados: SupraLINUX/SupraDesktop (este repo) y SupraLINUX/SupraLINUX (distro). Sustituye menciones históricas de nombre pendiente/SupraOS. No desarrollar imágenes, capas o installer aquí; consultar repo distro. No duplicar documentación activa. No fusionar PR sin autorización.

@@ -1,2 +1,5 @@
-# ADR-0017 — Confianza de releases
-Estado PROPOSED. Firma de paquete, manifiesto de release, boot assets, módulos y datos cifrados tienen fronteras distintas. Evaluar TUF, claves offline, UKI, systemd boot assessment, LUKS2, política de módulos y verificación runtime separada. Base oficial nunca firmada con claves locales de capas; personalización etiquetada. Canales promueven mismo artefacto, deltas opcionales tras full image confiable. [Confianza](../distribution/TRUST_BOOT.md), [entrega](../distribution/DELIVERY_SECURITY.md).
+# Documento trasladado a SupraLINUX
+
+La documentación canónica de la distribución se encuentra en [docs/decisions/0017-release-trust.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0017-release-trust.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0017-release-trust.md).

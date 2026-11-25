@@ -1,2 +1,5 @@
-# ADR-0018 — Adaptador SupraDeploy y presentación del instalador
-Estado ACCEPTED para objetivos (distro independiente, congelación coherente, LUKS2, recovery offline, frontend visual 1:1 y Beginner First); PROPOSED para implementación. Arkdep candidato inicial, con adaptación y contrato de despliegue independiente de UI. No usar layering in-place ni omitir capas fallidas. Considerar sysupdate/RAUC si gates no se cumplen. Solera es downstream, Shanios referencia de persistencia. Calamares upstream Codeberg: conservar lógica fiable, personalizar QML/QSS y viewmodules, job atómico separado; no cambiar particionado solo por estética. No crear fork ni repo aún. [Código](../distribution/ARKDEP_SOURCE_REVIEW.md), [frontend](../distribution/INSTALLER_FRONTEND.md), [pruebas](../distribution/PROTOTYPE_GATES.md).
+# Documento trasladado a SupraLINUX
+
+La documentación canónica de la distribución se encuentra en [docs/decisions/0018-deployment-adapter.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0018-deployment-adapter.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0018-deployment-adapter.md).

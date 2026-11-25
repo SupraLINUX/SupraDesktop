@@ -28,3 +28,6 @@ No hay instrucciones de instalación todavía. No reemplazar una sesión existen
 [Diseño de distribución atómica](docs/distribution/README.md): propuesta de plataforma oficial, aplicaciones universales, AUR opcional y extensiones del kernel. Debian queda fuera de la ruta oficial nueva.
 
 [Fronteras de repositorios](docs/architecture/REPOSITORY_BOUNDARIES.md): recomendación de dos monorepos, nombre distro pendiente. [Laboratorio](docs/testing/VALIDATION_LAB.md).
+
+## Repositorios oficiales
+SupraDesktop pertenece a [SupraLINUX](https://github.com/SupraLINUX). La distribución oficial se llama [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX), no SupraOS. La investigación de distro se trasladó a su repo; los enlaces históricos aquí redirigen al documento canónico. [Fronteras](docs/architecture/REPOSITORY_BOUNDARIES.md) · [Procedencia](docs/MIGRATION.md).

@@ -1,2 +1,5 @@
-# ADR-0014 — AUR y extensiones host
-Estado: ACCEPTED para libertad de instalar paquetes Arch/AUR por elección informada y no mutar la base activa; PROPOSED para mecanismos concretos. Sustituye la interpretación de host exclusivamente excepcional y de incluir v4l2loopback por defecto. AUR no oficial: integrado para software confiable, perfil restringido opcional, host por capas para paquetes normales y módulos/servicios. Separar build limpio y aislamiento, Distrobox integrado no es sandbox. Módulos kernel no pueden aislarse del host con contenedores. DKMS o módulo precompilado contra kernel exacto del nuevo despliegue, firma y boot assets según política. v4l2loopback solo caso de prueba. No desactivar Secure Boot ni conceder a agentes instalación privilegiada arbitraria. Ver [AUR](../distribution/APPLICATIONS_AUR.md), [capas](../distribution/PACKAGE_LAYERING.md), [módulos](../distribution/KERNEL_EXTENSIONS.md).
+# Documento trasladado a SupraLINUX
+
+La documentación canónica de la distribución se encuentra en [docs/decisions/0014-host-extensions.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0014-host-extensions.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0014-host-extensions.md).

@@ -1,3 +1,3 @@
-# packaging/arch
+# Packaging Arch del escritorio
 
-Reservado a PKGBUILD, repositorios firmados y manifiestos de imagen Arch. No hay paquetes implementados. [Pipeline](../../docs/distribution/BUILD_RELEASE.md). No ejecutar pacman contra el sistema activo como mecanismo de actualización oficial.
+Reservado a empaquetado portable de SupraDesktop para Arch, sin requerir SupraLINUX ni su backend de despliegue. Recetas de imagen, snapshot y capas de la distribución se gestionan en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/packaging/arch/README.md). Sin paquetes implementados.

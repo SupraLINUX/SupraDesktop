@@ -1,2 +1,5 @@
-# ADR-0016 — Beginner-first UX
-Estado ACCEPTED para dirección explícita del mantenedor: experiencia gráfica 1:1, destinada a personas poco experimentadas, con procesos visualmente cuidados, sin exigir terminal. Diseño técnico PROPOSED. Progressive disclosure, lenguaje claro, progreso real, vista avanzada, consentimiento explícito, cancelación y recuperación. No ocultar origen, permisos o errores; no fingir porcentajes, no autoejecutar paquetes. Accesibilidad y acciones AI Ready compartidas. [Especificación](../distribution/USER_EXPERIENCE.md).
+# Documento trasladado a SupraLINUX
+
+La documentación canónica de la distribución se encuentra en [docs/decisions/0016-beginner-first.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/docs/decisions/0016-beginner-first.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/docs/decisions/0016-beginner-first.md).

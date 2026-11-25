@@ -28,3 +28,6 @@ La interfaz debe reproducir visualmente macOS 1:1, no reinterpretarlo: colores, 
 
 ## Regla vinculante: No dependency shall dictate our design
 Ninguna biblioteca, toolkit o framework puede imponer límites que impidan cumplir los principios de SupraDesktop. Reutilizar, extender, adaptar, incorporar código libre con atribuciones, mantener un fork o implementar una alternativa propia según evidencia. No sacrificar el 1:1 por comodidad ni inventar una dependencia obligatoria. Seguridad, accesibilidad, legalidad y estabilidad siguen siendo restricciones transversales. Esta regla complementa los principios 1 y 3; no cambia su orden. Aprobada por el mantenedor, 2026-11-24.
+
+## Regla vinculante: Beginner First — Advanced When Needed
+Aprobada por el mantenedor. Tareas habituales del escritorio y distribución deben ser gráficas, accesibles, claras y no exigir terminal. Mostrar complejidad progresivamente, conservar opciones avanzadas y progreso real; no esconder permisos, procedencia ni errores. Complementa principios 4, 6 y 13 sin cambiar su orden.

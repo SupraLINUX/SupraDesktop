@@ -1,3 +1,5 @@
-# extensions
+# Documento trasladado a SupraLINUX
 
-Recetas de extensiones host y módulos de kernel versionados, con revisión y firma.
+La documentación canónica de la distribución se encuentra en [distribution/extensions/README.md](https://github.com/SupraLINUX/SupraLINUX/blob/docs/m00-import/distribution/extensions/README.md). No mantener una segunda copia activa aquí.
+
+[Contenido histórico íntegro](https://github.com/SupraLINUX/SupraDesktop/blob/ae5960f624884bad4c317087f69436c05bce11e0/distribution/extensions/README.md).
