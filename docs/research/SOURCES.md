@@ -61,3 +61,6 @@ Arkdep d7aa2f7, Solera 0b405285, bootc e074dc8 y Calamares histórico 95aa33f: [
 
 ## Investigación orientada a evidencia
 [Gráficos](GRAPHICS_PROTOTYPES.md), [captura](../reference-macos27/CAPTURE_LAB.md), [licencias](../development/LICENSE_STRATEGY.md), [laboratorio](../testing/VALIDATION_LAB.md), [release](../distribution/RELEASE_LAB.md), [firmware](../distribution/HARDWARE_FIRMWARE.md). Fuentes consultadas 2026-11-24. No benchmarks ni mediciones nativas.
+
+## 2026-11-25
+[Investigación M01](M01_GRAPHICS_VALIDATION.md): GPUI main incluye AccessKit, añadir Plushie Iced a candidatos, comparación óptica y geometría, presupuesto GPU, acción semántica y ensayo SSIM regional. Solo ensayo sintético ejecutado; no toolkit seleccionado.

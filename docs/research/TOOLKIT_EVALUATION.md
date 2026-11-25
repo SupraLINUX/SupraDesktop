@@ -19,3 +19,6 @@ Ventana de Settings sintética, panel layer-shell, menú popup, sidebar con scro
 P0: accesibilidad comprobable, acción semántica, foco/entrada, pixel control, ventanas Wayland y dependencia/licencia aceptables. Un fallo P0 no se compensa con FPS altos. P1: RAM PSS, latencia primera ventana y acción, p95/p99 frame time, compilación, escalado, integración de texto, testabilidad y esfuerzo de mantenimiento. Mismo hardware, toolchain, render size y corpus. Registrar revisión, flags, comandos y trazas; no declarar ganador sin prototipo.
 
 Evaluar una biblioteca de diseño común con adaptadores pequeños, no un framework universal para ocultar diferencias artificialmente. Contratos de acciones y tokens permanecen independientes de elección gráfica.
+
+## 2026-11-25
+[Investigación M01](M01_GRAPHICS_VALIDATION.md): GPUI main incluye AccessKit, añadir Plushie Iced a candidatos, comparación óptica y geometría, presupuesto GPU, acción semántica y ensayo SSIM regional. Solo ensayo sintético ejecutado; no toolkit seleccionado.
