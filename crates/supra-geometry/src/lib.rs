@@ -1,5 +1,8 @@
 //! Experimental canonical corner coverage in logical coordinates.
 //! These are mathematical candidates, NOT calibrated macOS geometry.
+mod boundary;
+pub use boundary::BoundarySample;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Corner {
     Circular,
