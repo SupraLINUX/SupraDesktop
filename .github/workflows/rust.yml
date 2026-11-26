@@ -24,6 +24,10 @@ jobs:
             cmp "evidence/$fixture.ppm" "evidence-repeat/$fixture.ppm"
           done
           sha256sum evidence/*.ppm > evidence/sha256.txt
+          python3 -m unittest discover -s tools/supra-lab -p 'test_optics_metrics.py'
+          python3 tools/supra-lab/optics_metrics.py evidence
+          python3 tools/supra-lab/optics_metrics.py evidence-repeat
+          cmp evidence/optics-metrics.json evidence-repeat/optics-metrics.json
           python3 tools/supra-lab/encode_png.py
       - uses: actions/upload-artifact@v4
         if: always()

@@ -10,3 +10,6 @@ Blur fixture: three independent bands sigma 0/4/12 physical samples (not macOS v
 
 ## Material fixture
 `material.ppm`: left original RGB pattern, right synthetic glass composite (linear blur, RGB refraction, Fresnel, tint and coverage). PNG display encoded in sRGB. Parameters are not production design tokens; CI determinism is not macOS fidelity.
+
+## Optical metrics
+`optics-metrics.json` reports left/right differences for refraction and material inside/outside the fixed bounding rectangle. CI rejects effects leaking outside it and effects that change no pixel inside it; report bytes must agree across fixture runs. Values are encoded RGB differences, not Delta E or a macOS score.
