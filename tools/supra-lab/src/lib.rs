@@ -1,5 +1,6 @@
 //! Deterministic CPU-only geometry fixture. Not a desktop screenshot.
 pub mod optics;
+pub mod refraction_fixture;
 
 use supra_geometry::{Corner, RoundedRect};
 

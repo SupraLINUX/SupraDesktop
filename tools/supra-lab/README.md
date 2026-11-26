@@ -4,3 +4,6 @@ Rust 1.88 fijado provisionalmente; no dependencias externas ni código de tercer
 
 ## M01 second increment
 Blur fixture: three independent bands sigma 0/4/12 physical samples (not macOS values), linear scalar convolution and sRGB export. Corners: circular, local n=4, cubic Bézier with both control points at outer corner, zero endpoint curvature (G2 to straight edge). Experimental candidate, not measured. Existing geometry fixture preserved. CI compares three PPMs across runs and exports PNG. No GPU or native calibration.
+
+## Refraction fixture
+`refraction.ppm` compares original grid panels (left identity, right experimental single-interface refraction). Synthetic geometry and optics, no calibrated macOS appearance. CI checks byte determinism and exports PNG with the existing encoder.

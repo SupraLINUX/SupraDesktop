@@ -20,7 +20,7 @@ jobs:
       - name: Verify deterministic fixture
         run: |
           cargo run --locked -p supra-lab -- evidence-repeat
-          for fixture in geometry blur corners; do
+          for fixture in geometry blur corners refraction; do
             cmp "evidence/$fixture.ppm" "evidence-repeat/$fixture.ppm"
           done
           sha256sum evidence/*.ppm > evidence/sha256.txt
