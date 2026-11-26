@@ -22,3 +22,7 @@ dependencies = [
 [[package]]
 name = "supra-scene"
 version = "0.0.1"
+
+[[package]]
+name = "supra-window"
+version = "0.0.1"

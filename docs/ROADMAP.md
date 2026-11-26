@@ -48,3 +48,6 @@ Track D se ejecuta en [SupraLINUX](https://github.com/SupraLINUX/SupraLINUX/blob
 Workspace Rust, supra-geometry y supra-lab implementados como primer corte CPU; CI verifica tests, determinismo y artefactos. No implica M01 PASS ni fidelidad macOS. [Laboratorio](../tools/supra-lab/README.md). Licencia pendiente antes de importar dependencias.
 
 M01 second increment: CPU Gaussian reference and local G2 cubic candidate, independent geometry/glass crates and three deterministic fixtures. CI pending. M01 full gate and M02 still pending.
+
+## M01 evidence / M02 backend-independent preparation
+[Run 45869337260](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45869337260): 64 CPU incremental frames identical to full redraw; 414466 vs 1572864 stage-pixel evaluations, unchanged frame zero. No performance or GPU claim. M02 preparation: original dependency-free supra-window crate for toplevel lifecycle, internal configure token, commit, stacking, explicit activation, advisory close, unmap and destroy. Tests pending. Not an actual Wayland compositor, not M02 PASS. Smithay/license review remains open.

@@ -1,5 +1,5 @@
 [workspace]
-members = ["crates/supra-geometry", "crates/supra-glass", "crates/supra-scene", "tools/supra-lab"]
+members = ["crates/supra-geometry", "crates/supra-glass", "crates/supra-scene", "crates/supra-window", "tools/supra-lab"]
 resolver = "2"
 
 [workspace.package]
