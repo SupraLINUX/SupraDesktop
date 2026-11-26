@@ -7,3 +7,6 @@ Blur fixture: three independent bands sigma 0/4/12 physical samples (not macOS v
 
 ## Refraction fixture
 `refraction.ppm` compares original grid panels (left identity, right experimental single-interface refraction). Synthetic geometry and optics, no calibrated macOS appearance. CI checks byte determinism and exports PNG with the existing encoder.
+
+## Material fixture
+`material.ppm`: left original RGB pattern, right synthetic glass composite (linear blur, RGB refraction, Fresnel, tint and coverage). PNG display encoded in sRGB. Parameters are not production design tokens; CI determinism is not macOS fidelity.

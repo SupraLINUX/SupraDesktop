@@ -21,6 +21,20 @@ impl Refraction {
         Some(Self { band, depth, slope, index })
     }
 
+    /// Cosine of the incident angle for the same synthetic surface profile.
+    pub fn incidence_cosine(self, signed_distance: f64) -> Option<f64> {
+        if !signed_distance.is_finite() {
+            return None;
+        }
+        let slope = if signed_distance < 0.0 && signed_distance > -self.band {
+            let u = -signed_distance / self.band;
+            self.slope * 4.0 * u * (1.0 - u)
+        } else {
+            0.0
+        };
+        Some(1.0 / slope.hypot(1.0))
+    }
+
     /// Backdrop sampling offset for a ray along -Z through a local surface.
     /// Distance is negative inside; normal points outward in the image plane.
     /// The synthetic slope profile vanishes at the rim and inner band edge.
