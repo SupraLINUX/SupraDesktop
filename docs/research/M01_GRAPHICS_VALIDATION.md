@@ -21,3 +21,6 @@ G01–G08 en SupraLab, prototipos comparables y aislados. Solo V00 ejecutado; no
 
 ## G03 — Incremento de distancia de contorno
 IMPLEMENTED / CI pending. Referencia CPU de distancia con signo, aproximación poligonal de 128 segmentos por esquina y normales exteriores; conserva membership analítico. No es SDF exacto, no mide error máximo, no es shader ni calibración macOS. Pruebas de rectángulo, distancia circular, simetría, signo y normales unitarias. Usar como oráculo experimental, no como ruta por píxel en producción. Validar error frente a contornos de referencia antes de efectos ópticos.
+
+## G03 — Independent numerical checks
+Added [integration tests](../../crates/supra-geometry/tests/boundary_accuracy.rs) for circular analytic SDF versus the tessellated reference (chord sagitta bound), sampled implicit contours of superellipse and G2 cubic at multiple radii (experimental tolerance 0.0004 times radius), and uniform scaling of signed distances and normals at non-tie points. The tolerance is a numerical laboratory target, not a measured maximum or Apple fidelity criterion. No runtime API or dependency changes. CI pending for this increment; native reference and GPU remain pending.
