@@ -67,3 +67,5 @@ mod tests {
         assert_ne!(pixel(42, 34), pixel(354, 34));
     }
 }
+
+pub mod scene_fixture;

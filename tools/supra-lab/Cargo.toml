@@ -8,6 +8,7 @@ rust-version.workspace = true
 supra-geometry = { path = "../../crates/supra-geometry" }
 
 supra-glass = { path = "../../crates/supra-glass" }
+supra-scene = { path = "../../crates/supra-scene" }
 
 [lints]
 workspace = true

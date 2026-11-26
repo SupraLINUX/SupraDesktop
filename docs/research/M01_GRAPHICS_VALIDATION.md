@@ -36,3 +36,6 @@ Added [integration tests](../../crates/supra-geometry/tests/boundary_accuracy.rs
 
 ## G05/P16 — Conservative scene damage reference
 [Run 45863919689](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45863919689): optical metrics PASS; 3658/32256 changed pixels for refraction, 31948/32256 for material, zero outside the bounding ROI (82944 pixels each). New dependency-free original SupraScene crate tests conservative lower-to-upper invalidation and synthetic damage completeness. No compositor or GPU claim; external Smithay integration remains pending license ratification and pinned dependency review. CI pending for this increment.
+
+## G05 — Incremental composition experiment
+SupraScene planner PASS in [45866459274](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45866459274). Added original per-prefix CPU cache experiment to SupraLab; compares every incremental frame with a full render and exports scene-metrics.json. No new external dependency. Metrics count stage-pixel evaluations, not GPU/CPU performance. CI pending.
