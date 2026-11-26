@@ -17,3 +17,7 @@ dependencies = [
  "supra-geometry",
  "supra-glass",
 ]
+
+[[package]]
+name = "supra-scene"
+version = "0.0.1"
