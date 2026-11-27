@@ -1,7 +1,7 @@
 name: Smithay upstream candidate lab
 on:
   push:
-    paths: ['tools/smithay-lab/**', 'tools/wayland-lab/trace.py', '.github/workflows/smithay-lab.yml']
+    paths: ['tools/smithay-lab/**', 'tools/wayland-lab/**', '.github/workflows/smithay-lab.yml']
   workflow_dispatch:
 permissions:
   contents: read

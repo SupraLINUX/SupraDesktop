@@ -53,6 +53,9 @@ if [[ "$status" != 124 && "$status" != 0 ]]; then exit "$status"; fi
 kill -0 "$outer"
 kill -0 "$inner"
 python3 tools/wayland-lab/trace.py "$out"
+python3 tools/wayland-lab/multiclient.py "$out"
+kill -0 "$outer"
+kill -0 "$inner"
 python3 - "$out" <<'PY'
 import json
 from pathlib import Path

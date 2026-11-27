@@ -35,3 +35,6 @@ WAYLAND_DEBUG=client timeout --signal=TERM --kill-after=3 5 weston-simple-shm \
 if [[ "$status" != 124 && "$status" != 0 ]]; then exit "$status"; fi
 kill -0 "$server"
 python3 tools/wayland-lab/trace.py "$out"
+
+python3 tools/wayland-lab/multiclient.py "$out"
+kill -0 "$server"

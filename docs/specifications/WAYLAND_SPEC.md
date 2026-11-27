@@ -23,3 +23,6 @@ P0/P1: ext-background-effect-v1 (blur por región; soporte upstream a verificar 
 
 ## Pinned nested Smithay feasibility test
 [Candidate lab](../../tools/smithay-lab/README.md) runs unmodified upstream Smallvil on Weston in separate ephemeral CI, with Mesa software rendering requested, private socket and the existing real-client evidence checks. No host session, no Smithay code imported into SupraDesktop. This is an external feasibility experiment, not M02 completion. CI pending.
+
+## Concurrent clients (external reference)
+[Multi-client harness](../../tools/wayland-lab/multiclient.py) runs two distinct SHM clients with separate traces against the isolated Weston or Smallvil socket. Requires configure/ack/commit/frame for both, then actual survivor callback progress after peer termination. It does not verify focus, resize, input, security isolation, frame presentation timing or our own compositor. CI pending.

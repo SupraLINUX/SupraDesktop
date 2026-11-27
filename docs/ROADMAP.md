@@ -57,3 +57,6 @@ M01 second increment: CPU Gaussian reference and local G2 cubic candidate, indep
 
 ## M02 — Smithay candidate lab
 [Run 45934029405](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45934029405): real external Weston/SHM trace PASS. Added isolated upstream Smallvil build and nested runtime at Smithay v0.7.0 commit a166cf4c94b5aedc332a65aa1dd753e8148829c3. Collect dependency/feature inventory, generated lock and toolchain; use existing trace validator. Does not import code into the project or select final backend. CI pending; license ratification and transitive review remain required.
+
+## M02 — Upstream candidate PASS and multiple real clients
+[Run 45998105413](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998105413): exact Smallvil revision built and served a real nested SHM client; configure/commit/frame evidence PASS. Added a reusable two-client test to both external reference backends: wait for real frame evidence on two independent connections, terminate one, record surviving client's callback count after exit, require at least three additional callbacks and both servers alive. Logs and JSON record actual counts. Not a security isolation or GPU test and not own compositor. CI pending. License audit/ratification still required before integrating Smithay into own runtime.
