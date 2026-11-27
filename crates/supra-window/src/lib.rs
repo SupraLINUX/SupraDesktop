@@ -3,6 +3,7 @@
 //! serials, buffer commits, input authorization and disconnect semantics.
 pub mod buffers;
 pub mod clients;
+pub mod surface;
 pub mod wire;
 
 use std::collections::{BTreeMap, VecDeque};

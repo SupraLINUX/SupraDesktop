@@ -78,3 +78,6 @@ Original, dependency-free WireWindows adapter maps backend-supplied uint32 confi
 
 ## M02 — Wire adapter PASS / buffer ledger
 [Run 46032784564](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46032784564): workspace tests, Clippy and deterministic fixtures PASS, including serial adapter. New original buffer ownership/retirement ledger with connection-scoped object reuse, trusted completion and disconnect tests. No actual graphics import, GPU fence or protocol runtime yet. CI pending.
+
+## M02 — Buffer ledger PASS / surface state contract
+[Run 46043642471](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46043642471): workspace tests, Clippy and deterministic fixtures PASS including buffer ledger. Add original pure pending/current surface state, preview, commit generations, explicit detach vs unchanged, integer scale/transform and frame request handoff/discard. Tests pending. Actual transport, role validation, presentation scheduler and renderer remain to integrate. No external dependency or license adoption.
