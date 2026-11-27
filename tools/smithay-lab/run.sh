@@ -56,6 +56,7 @@ python3 tools/wayland-lab/trace.py "$out"
 python3 tools/wayland-lab/multiclient.py "$out"
 kill -0 "$outer"
 kill -0 "$inner"
+python3 tools/smithay-lab/native_inventory.py "$out" "$inner"
 python3 - "$out" <<'PY'
 import json
 from pathlib import Path

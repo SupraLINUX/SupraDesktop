@@ -25,7 +25,7 @@ jobs:
         run: bash tools/smithay-lab/build.sh evidence
       - name: Collect exact license files and native link inventory
         run: |
-          python3 -m unittest discover -s tools/smithay-lab -p 'test_license_inventory.py'
+          python3 -m unittest discover -s tools/smithay-lab -p 'test_*inventory.py'
           python3 tools/smithay-lab/license_inventory.py evidence "$RUNNER_TEMP/smithay-candidate"
       - name: Probe nested compositor
         run: bash tools/smithay-lab/run.sh evidence

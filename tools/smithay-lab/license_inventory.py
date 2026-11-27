@@ -84,6 +84,9 @@ def main():
             shutil.copyfile(path, dest)
             item["files"].append({"path": str(relative), "sha256": hashlib.sha256(data).hexdigest(),
                                   "bytes": len(data)})
+        item["repository"] = manifest.get("repository")
+        vcs = root / ".cargo_vcs_info.json"
+        item["cargo_vcs_info"] = json.loads(vcs.read_text()) if vcs.is_file() else None
         report.append(item)
     native = subprocess.run(["ldd", str(upstream / "target/debug/smallvil")],
                             check=True, text=True, capture_output=True).stdout
