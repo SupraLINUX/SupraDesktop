@@ -12,3 +12,5 @@ Reviewed downloaded [artifact 15196553665](https://github.com/SupraLINUX/SupraDe
 
 ## Toolchain compatibility experiment
 The observed 1.100.0 toolchain is now explicitly pinned for the external lab only. The provisional workspace 1.88.0 is checked against the same generated lock, offline after the reference build/runtime test. The check result and log are recorded independently; a nonzero status requires inspection rather than automatically classifying an MSRV failure. No workspace version or dependency adoption decision is made. CI pending.
+
+[Run 46014792298](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46014792298): pinned reference build and nested multiclient runtime PASS; same-lock offline cargo check with Rust 1.88.0 exit 0. No current evidence requiring a workspace toolchain upgrade. Still not a runtime test of 1.88 or an audited fixed dependency graph for the original compositor.

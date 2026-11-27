@@ -1,6 +1,8 @@
 //! Backend-independent experimental toplevel state model.
 //! Not a Wayland protocol implementation: backend must translate configure
 //! serials, buffer commits, input authorization and disconnect semantics.
+pub mod clients;
+
 use std::collections::{BTreeMap, VecDeque};
 
 /// Experimental per-window backpressure bound, not a protocol limit.

@@ -63,3 +63,6 @@ M01 second increment: CPU Gaussian reference and local G2 cubic candidate, indep
 
 ## M02 — Window lifecycle correction
 The external Weston and Smallvil multiclient runs [45998837761](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998837761) and [45998837793](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998837793) passed. Correct backend-independent configure ordering, bounded backpressure, optional size hints and advisory close in SupraWindow, with regression tests; see [Wayland specification](specifications/WAYLAND_SPEC.md). CI pending. M02 is not complete, license and backend adoption remain open.
+
+## M02 — Connection lifecycle preparation
+[Run 46014792298](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46014792298): nested reference runtime PASS under 1.100.0; offline cargo check with the same lock on Rust 1.88.0 exit 0, not a runtime test of 1.88. Keep workspace Rust unchanged. Original connection-scoped window dispatch and disconnect cleanup implemented in separate SupraWindow module, no external dependencies. Tests pending. Runtime adoption and license ratification remain open.
