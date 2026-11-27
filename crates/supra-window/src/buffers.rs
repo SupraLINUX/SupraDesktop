@@ -65,6 +65,20 @@ impl Buffers {
     /// internal consumers may hold the same buffer until independent completion.
     pub fn begin_use(&mut self, owner: ClientId, object: u32) -> Result<UseId, Error> {
         let id = *self.objects.get(&(owner, object)).ok_or(Error::UnknownBuffer)?;
+        self.begin_use_id(owner, id)
+    }
+
+    /// Resolve the stable attachment identity, not a potentially recycled
+    /// protocol object number. Retired and foreign buffers are rejected.
+    pub(crate) fn validate_use_id(&self, owner: ClientId, id: BufferId) -> Result<(), Error> {
+        let entry = self.entries.get(&id).ok_or(Error::UnknownBuffer)?;
+        if entry.owner != owner || entry.object.is_none() { return Err(Error::UnknownBuffer); }
+        self.next_use.checked_add(1).ok_or(Error::Exhausted)?;
+        Ok(())
+    }
+
+    pub(crate) fn begin_use_id(&mut self, owner: ClientId, id: BufferId) -> Result<UseId, Error> {
+        self.validate_use_id(owner, id)?;
         let entry = self.entries.get_mut(&id).ok_or(Error::UnknownBuffer)?;
         let token = UseId(self.next_use.checked_add(1).ok_or(Error::Exhausted)?);
         self.next_use = token.0;

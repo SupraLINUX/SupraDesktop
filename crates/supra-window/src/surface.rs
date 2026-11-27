@@ -73,6 +73,11 @@ pub struct Surface {
 impl Surface {
     pub fn current(&self) -> State { self.current }
     pub fn generation(&self) -> u64 { self.generation }
+    pub(crate) fn pending_attachment(&self) -> Attachment { self.attachment }
+    pub(crate) fn validate_commit(&self) -> Result<(), Error> {
+        self.generation.checked_add(1).ok_or(Error::Exhausted)?;
+        Ok(())
+    }
 
     /// A replacement before commit has no committed use in the buffer ledger.
     pub fn attach(&mut self, buffer: Option<BufferId>) {

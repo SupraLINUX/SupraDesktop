@@ -51,6 +51,8 @@ impl Connections {
         Ok(id)
     }
 
+    pub(crate) fn is_live(&self, client: ClientId) -> bool { self.clients.contains_key(&client) }
+
     pub fn resolve(&self, client: ClientId, object: u32) -> Result<WindowId, Error> {
         self.clients.get(&client).ok_or(Error::UnknownClient)?
             .get(&object).copied().ok_or(Error::UnknownObject)
@@ -59,6 +61,10 @@ impl Connections {
     pub fn acknowledge(&mut self, client: ClientId, object: u32, token: u64) -> Result<(), Error> {
         let id = self.resolve(client, object)?;
         Ok(self.windows.acknowledge(id, token)?)
+    }
+
+    pub(crate) fn validate_commit(&self, client: ClientId, object: u32, actual: Size) -> Result<(), Error> {
+        Ok(self.windows.validate_commit(self.resolve(client, object)?, actual)?)
     }
 
     pub fn commit(&mut self, client: ClientId, object: u32, actual: Size) -> Result<(), Error> {

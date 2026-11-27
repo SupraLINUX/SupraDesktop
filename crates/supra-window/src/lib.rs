@@ -3,6 +3,7 @@
 //! serials, buffer commits, input authorization and disconnect semantics.
 pub mod buffers;
 pub mod clients;
+pub mod commit;
 pub mod surface;
 pub mod wire;
 
@@ -107,12 +108,18 @@ impl Windows {
 
     /// Initial map requires a configure acknowledgement. For mapped windows,
     /// content-only commits are legal. A suggested size is not a hard limit.
-    pub fn commit(&mut self, id: WindowId, actual: Size) -> Result<(), Error> {
+    pub(crate) fn validate_commit(&self, id: WindowId, actual: Size) -> Result<(), Error> {
         if !actual.valid() { return Err(Error::InvalidSize); }
-        let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
+        let entry = self.entries.get(&id).ok_or(Error::Unknown)?;
         if !entry.mapped() && entry.acknowledged.is_none() {
             return Err(Error::InvalidState);
         }
+        Ok(())
+    }
+
+    pub fn commit(&mut self, id: WindowId, actual: Size) -> Result<(), Error> {
+        self.validate_commit(id, actual)?;
+        let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
         if !entry.mapped() {
             self.stacking.push(id);
         }

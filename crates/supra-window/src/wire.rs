@@ -57,6 +57,16 @@ impl WireWindows {
         Ok(())
     }
 
+    pub(crate) fn is_live(&self, client: ClientId) -> bool { self.connections.is_live(client) }
+
+    pub(crate) fn resolve(&self, client: ClientId, object: u32) -> Result<WindowId, Error> {
+        Ok(self.connections.resolve(client, object)?)
+    }
+
+    pub(crate) fn validate_commit(&self, client: ClientId, object: u32, actual: Size) -> Result<(), Error> {
+        Ok(self.connections.validate_commit(client, object, actual)?)
+    }
+
     pub fn commit(&mut self, client: ClientId, object: u32, actual: Size) -> Result<(), Error> {
         Ok(self.connections.commit(client, object, actual)?)
     }
