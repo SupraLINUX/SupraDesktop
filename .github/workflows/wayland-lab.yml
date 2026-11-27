@@ -1,0 +1,30 @@
+name: Wayland reference lab
+on:
+  push:
+    paths: ['tools/wayland-lab/**', '.github/workflows/wayland-lab.yml']
+  pull_request:
+    paths: ['tools/wayland-lab/**', '.github/workflows/wayland-lab.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  reference:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test trace validator
+        run: python3 -m unittest discover -s tools/wayland-lab -p 'test_*.py'
+      - name: Install external reference tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends weston wayland-utils
+      - name: Run isolated Wayland reference session
+        run: bash tools/wayland-lab/reference.sh evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: wayland-reference-evidence
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn

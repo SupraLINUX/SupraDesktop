@@ -51,3 +51,6 @@ M01 second increment: CPU Gaussian reference and local G2 cubic candidate, indep
 
 ## M01 evidence / M02 backend-independent preparation
 [Run 45869337260](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45869337260): 64 CPU incremental frames identical to full redraw; 414466 vs 1572864 stage-pixel evaluations, unchanged frame zero. No performance or GPU claim. M02 preparation: original dependency-free supra-window crate for toplevel lifecycle, internal configure token, commit, stacking, explicit activation, advisory close, unmap and destroy. Tests pending. Not an actual Wayland compositor, not M02 PASS. Smithay/license review remains open.
+
+## M02 — Reference environment probe
+[Run 45872169105](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45872169105): SupraWindow lifecycle, existing workspace, Clippy and fixtures PASS. New independent Wayland lab runs packaged Weston headless/Pixman with an isolated runtime socket and external SHM client. Requires globals, per-object xdg configure/ack, non-null buffer attach/commit and a frame callback; emits trace and package versions. This validates reference infrastructure only, not SupraCompositor. No source or runtime dependency adopted; Smithay and license decisions remain open. CI pending.
