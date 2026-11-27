@@ -1,6 +1,7 @@
 //! Backend-independent experimental toplevel state model.
 //! Not a Wayland protocol implementation: backend must translate configure
 //! serials, buffer commits, input authorization and disconnect semantics.
+pub mod buffers;
 pub mod clients;
 pub mod wire;
 

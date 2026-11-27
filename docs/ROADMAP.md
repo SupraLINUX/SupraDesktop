@@ -75,3 +75,6 @@ The external Weston and Smallvil multiclient runs [45998837761](https://github.c
 
 ## M02 — Wire serial translation preparation
 Original, dependency-free WireWindows adapter maps backend-supplied uint32 configure serials to internal u64 tokens, preserves FIFO across wrap, clears pending mappings with surface/connection lifecycle, tests invalid serial and queue backpressure. See Wayland specification. CI pending, not a real compositor or license adoption.
+
+## M02 — Wire adapter PASS / buffer ledger
+[Run 46032784564](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46032784564): workspace tests, Clippy and deterministic fixtures PASS, including serial adapter. New original buffer ownership/retirement ledger with connection-scoped object reuse, trusted completion and disconnect tests. No actual graphics import, GPU fence or protocol runtime yet. CI pending.
