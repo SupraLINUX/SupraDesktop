@@ -16,13 +16,13 @@ cp "$upstream/LICENSE.txt" "$out/upstream-LICENSE.txt"
 # Upstream does not track Cargo.lock at this revision: record the resolution,
 # but do not claim reproducibility across clean runs.
 cd "$upstream"
-rustc +stable --version > "$out/toolchain.txt"
-cargo +stable --version >> "$out/toolchain.txt"
-cargo +stable generate-lockfile
+rustc +1.100.0 --version > "$out/toolchain.txt"
+cargo +1.100.0 --version >> "$out/toolchain.txt"
+cargo +1.100.0 generate-lockfile
 cp Cargo.lock "$out/upstream-Cargo.lock"
-cargo +stable tree --locked -p smallvil --target x86_64-unknown-linux-gnu \
+cargo +1.100.0 tree --locked -p smallvil --target x86_64-unknown-linux-gnu \
     -e normal,build --prefix none --format '{p}|{l}' > "$out/dependency-licenses.txt"
-cargo +stable tree --locked -p smallvil --target x86_64-unknown-linux-gnu \
+cargo +1.100.0 tree --locked -p smallvil --target x86_64-unknown-linux-gnu \
     -e features > "$out/dependency-features.txt"
-cargo +stable build --locked -p smallvil 2>&1 | tee "$out/build.log"
+cargo +1.100.0 build --locked -p smallvil 2>&1 | tee "$out/build.log"
 test -x target/debug/smallvil
