@@ -1,0 +1,12 @@
+[package]
+name = "supra-render-cpu"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+supra-scene = { path = "../supra-scene" }
+supra-window = { path = "../supra-window" }
+
+[lints]
+workspace = true

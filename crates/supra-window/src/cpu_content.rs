@@ -86,6 +86,7 @@ pub struct Content(Arc<Pixels>);
 
 impl Content {
     pub fn bytes(&self) -> &[u8] { &self.0.bytes }
+    pub fn same_storage(&self, other: &Self) -> bool { Arc::ptr_eq(&self.0, &other.0) }
     pub fn layout(&self) -> Layout { self.0.layout }
 }
 

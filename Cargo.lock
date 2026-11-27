@@ -20,6 +20,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "supra-render-cpu"
+version = "0.0.1"
+dependencies = [
+ "supra-scene",
+ "supra-window",
+]
+
+[[package]]
 name = "supra-scene"
 version = "0.0.1"
 
