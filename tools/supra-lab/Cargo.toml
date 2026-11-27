@@ -5,6 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+supra-render-cpu = { path = "../../crates/supra-render-cpu" }
+supra-window = { path = "../../crates/supra-window" }
 supra-geometry = { path = "../../crates/supra-geometry" }
 
 supra-glass = { path = "../../crates/supra-glass" }

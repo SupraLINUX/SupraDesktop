@@ -69,3 +69,5 @@ mod tests {
 }
 
 pub mod scene_fixture;
+
+pub mod window_optics_fixture;

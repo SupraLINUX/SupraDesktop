@@ -16,13 +16,17 @@ version = "0.0.1"
 dependencies = [
  "supra-geometry",
  "supra-glass",
+ "supra-render-cpu",
  "supra-scene",
+ "supra-window",
 ]
 
 [[package]]
 name = "supra-render-cpu"
 version = "0.0.1"
 dependencies = [
+ "supra-geometry",
+ "supra-glass",
  "supra-scene",
  "supra-window",
 ]

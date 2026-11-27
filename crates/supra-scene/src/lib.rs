@@ -13,6 +13,8 @@ impl Rect {
         (x0 < x1 && y0 < y1).then_some(Self { x0, y0, x1, y1 })
     }
 
+    pub fn edges(self) -> (u32,u32,u32,u32) { (self.x0,self.y0,self.x1,self.y1) }
+
     pub fn contains(self, x: u32, y: u32) -> bool {
         x >= self.x0 && x < self.x1 && y >= self.y0 && y < self.y1
     }
@@ -98,4 +100,29 @@ pub fn plan(old_output: Rect, output: Rect, old: &[Layer], new: &[Layer]) -> Res
         }
     }
     Ok(result)
+}
+
+/// Exact, nonoverlapping rectangle union, partitioned into horizontal bands.
+/// Work depends on rectangle count, not output pixel count.
+pub fn disjoint_regions(regions: &[Rect], output: Rect) -> Vec<Rect> {
+    let clipped: Vec<_> = regions.iter().filter_map(|r| r.intersect(output)).collect();
+    let mut edges: Vec<_> = clipped.iter().flat_map(|r| [r.y0,r.y1]).collect();
+    edges.sort_unstable();
+    edges.dedup();
+    let mut result = Vec::new();
+    for band in edges.windows(2) {
+        let (top,bottom) = (band[0],band[1]);
+        let mut spans: Vec<_> = clipped.iter().filter(|r| r.y0 <= top && r.y1 >= bottom)
+            .map(|r| (r.x0,r.x1)).collect();
+        spans.sort_unstable();
+        let mut merged: Vec<(u32,u32)> = Vec::new();
+        for (left,right) in spans {
+            if let Some(last) = merged.last_mut() {
+                if left <= last.1 { last.1 = last.1.max(right); continue; }
+            }
+            merged.push((left,right));
+        }
+        result.extend(merged.into_iter().map(|(x0,x1)| Rect { x0,y0:top,x1,y1:bottom }));
+    }
+    result
 }

@@ -1,7 +1,8 @@
 //! Reference software composition of retained window snapshots.
 //! Output scale 1, nonnegative placements, nearest sample, opaque black
 //! background, integer premultiplied source-over. No GPU or color management.
-use supra_scene::{Layer, Rect, plan};
+pub mod optical;
+use supra_scene::{Layer, Rect, disjoint_regions, plan};
 use supra_window::{cpu_content::{Format, Snapshot}, surface::Transform};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -69,7 +70,6 @@ fn pixel(x: u32, y: u32, layers: &[Layer], surfaces: &[Placed]) -> [u8;4] {
 
 pub struct Frame {
     width: u32,
-    height: u32,
     output: Rect,
     rgba: Vec<[u8;4]>,
     layers: Vec<Layer>,
@@ -85,7 +85,7 @@ impl Frame {
         let mut rgba = Vec::new();
         rgba.try_reserve_exact(len).map_err(|_| Error::Allocation)?;
         rgba.resize(len,[0,0,0,255]);
-        Ok(Self { width,height,output,rgba,layers:Vec::new(),surfaces:Vec::new() })
+        Ok(Self { width,output,rgba,layers:Vec::new(),surfaces:Vec::new() })
     }
 
     pub fn pixels(&self) -> &[[u8;4]] { &self.rgba }
@@ -101,10 +101,13 @@ impl Frame {
         let ambiguous = self.layers.iter().zip(&layers).zip(self.surfaces.iter().zip(&surfaces))
             .any(|((a,b),(old,new))| a == b &&
                 (!old.snapshot.content.same_storage(&new.snapshot.content) || old.snapshot.state != new.snapshot.state));
+        let regions = if ambiguous || damage.full_redraw { vec![self.output] }
+                      else { disjoint_regions(&damage.regions,self.output) };
         let mut count = 0;
-        for y in 0..self.height {
-            for x in 0..self.width {
-                if ambiguous || damage.full_redraw || damage.regions.iter().any(|r| r.contains(x,y)) {
+        for region in regions {
+            let (x0,y0,x1,y1) = region.edges();
+            for y in y0..y1 {
+                for x in x0..x1 {
                     self.rgba[y as usize*self.width as usize+x as usize] = pixel(x,y,&layers,&surfaces);
                     count += 1;
                 }

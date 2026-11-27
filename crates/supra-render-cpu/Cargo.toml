@@ -5,6 +5,8 @@ edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+supra-geometry = { path = "../supra-geometry" }
+supra-glass = { path = "../supra-glass" }
 supra-scene = { path = "../supra-scene" }
 supra-window = { path = "../supra-window" }
 
