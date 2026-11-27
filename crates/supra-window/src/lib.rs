@@ -2,6 +2,7 @@
 //! Not a Wayland protocol implementation: backend must translate configure
 //! serials, buffer commits, input authorization and disconnect semantics.
 pub mod clients;
+pub mod wire;
 
 use std::collections::{BTreeMap, VecDeque};
 

@@ -72,3 +72,6 @@ The external Weston and Smallvil multiclient runs [45998837761](https://github.c
 
 ## M02 — Rust runtime PASS / dependency evidence
 [Run 46027514910](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46027514910): exact reviewed lock and actual nested Smallvil runtime with Rust 1.88.0 PASS, two clients and survivor progress. Preserve workspace Rust; new crate license-file/native link inventory CI pending. License decision remains PROPOSED and no dependency adopted.
+
+## M02 — Wire serial translation preparation
+Original, dependency-free WireWindows adapter maps backend-supplied uint32 configure serials to internal u64 tokens, preserves FIFO across wrap, clears pending mappings with surface/connection lifecycle, tests invalid serial and queue backpressure. See Wayland specification. CI pending, not a real compositor or license adoption.
