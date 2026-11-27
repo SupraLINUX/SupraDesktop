@@ -60,3 +60,6 @@ M01 second increment: CPU Gaussian reference and local G2 cubic candidate, indep
 
 ## M02 — Upstream candidate PASS and multiple real clients
 [Run 45998105413](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998105413): exact Smallvil revision built and served a real nested SHM client; configure/commit/frame evidence PASS. Added a reusable two-client test to both external reference backends: wait for real frame evidence on two independent connections, terminate one, record surviving client's callback count after exit, require at least three additional callbacks and both servers alive. Logs and JSON record actual counts. Not a security isolation or GPU test and not own compositor. CI pending. License audit/ratification still required before integrating Smithay into own runtime.
+
+## M02 — Window lifecycle correction
+The external Weston and Smallvil multiclient runs [45998837761](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998837761) and [45998837793](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45998837793) passed. Correct backend-independent configure ordering, bounded backpressure, optional size hints and advisory close in SupraWindow, with regression tests; see [Wayland specification](specifications/WAYLAND_SPEC.md). CI pending. M02 is not complete, license and backend adoption remain open.

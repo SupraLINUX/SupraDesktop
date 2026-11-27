@@ -1,7 +1,10 @@
 //! Backend-independent experimental toplevel state model.
 //! Not a Wayland protocol implementation: backend must translate configure
 //! serials, buffer commits, input authorization and disconnect semantics.
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, VecDeque};
+
+/// Experimental per-window backpressure bound, not a protocol limit.
+pub const MAX_PENDING_CONFIGURES: usize = 256;
 
 pub type WindowId = u64;
 
@@ -31,19 +34,21 @@ pub enum Error {
     InvalidState,
     StaleConfigure,
     Exhausted,
+    ConfigureQueueFull,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct Window {
     committed: Option<Size>,
-    pending: Option<Configure>,
+    pending: VecDeque<Configure>,
     acknowledged: Option<Configure>,
     close_requested: bool,
 }
 
 impl Window {
     pub fn committed(&self) -> Option<Size> { self.committed }
-    pub fn pending(&self) -> Option<Configure> { self.pending }
+    pub fn pending(&self) -> Option<Configure> { self.pending.back().copied() }
+    pub fn pending_count(&self) -> usize { self.pending.len() }
     pub fn mapped(&self) -> bool { self.committed.is_some() }
     pub fn close_requested(&self) -> bool { self.close_requested }
 }
@@ -72,23 +77,25 @@ impl Windows {
 
     /// Internal tokens never wrap. The Wayland adapter will own wire serials.
     pub fn configure(&mut self, id: WindowId, suggested: Size) -> Result<Configure, Error> {
-        if !suggested.valid() { return Err(Error::InvalidSize); }
+        // Zero in either suggested dimension delegates that dimension to the client.
+        // The lab size ceiling is local policy, not a Wayland wire constraint.
+        if suggested.width > 16384 || suggested.height > 16384 { return Err(Error::InvalidSize); }
         let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
-        if entry.close_requested { return Err(Error::InvalidState); }
+        if entry.pending.len() >= MAX_PENDING_CONFIGURES { return Err(Error::ConfigureQueueFull); }
         let token = self.next_token.checked_add(1).ok_or(Error::Exhausted)?;
         self.next_token = token;
         let request = Configure { token, suggested };
-        entry.pending = Some(request);
+        entry.pending.push_back(request);
         Ok(request)
     }
 
-    /// This lab coalesces unacknowledged requests to the latest token.
-    /// An already acknowledged request remains eligible for the next commit.
+    /// Acknowledge an outstanding request and consume it and all older requests.
+    /// A later acknowledgement before commit supersedes the previous one.
     pub fn acknowledge(&mut self, id: WindowId, token: u64) -> Result<(), Error> {
         let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
-        let request = entry.pending.filter(|p| p.token == token).ok_or(Error::StaleConfigure)?;
-        if entry.close_requested { return Err(Error::InvalidState); }
-        entry.pending = None;
+        let index = entry.pending.iter().position(|p| p.token == token).ok_or(Error::StaleConfigure)?;
+        let request = entry.pending[index];
+        entry.pending.drain(..=index);
         entry.acknowledged = Some(request);
         Ok(())
     }
@@ -98,7 +105,7 @@ impl Windows {
     pub fn commit(&mut self, id: WindowId, actual: Size) -> Result<(), Error> {
         if !actual.valid() { return Err(Error::InvalidSize); }
         let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
-        if entry.close_requested || (!entry.mapped() && entry.acknowledged.is_none()) {
+        if !entry.mapped() && entry.acknowledged.is_none() {
             return Err(Error::InvalidState);
         }
         if !entry.mapped() {
@@ -112,7 +119,7 @@ impl Windows {
     /// Only a trusted compositor policy should call this. No client auth here.
     pub fn activate(&mut self, id: WindowId) -> Result<(), Error> {
         let entry = self.entries.get(&id).ok_or(Error::Unknown)?;
-        if !entry.mapped() || entry.close_requested { return Err(Error::InvalidState); }
+        if !entry.mapped() { return Err(Error::InvalidState); }
         self.stacking.retain(|&other| other != id);
         self.stacking.push(id);
         self.focus = Some(id);
@@ -123,10 +130,9 @@ impl Windows {
     pub fn request_close(&mut self, id: WindowId) -> Result<(), Error> {
         let entry = self.entries.get_mut(&id).ok_or(Error::Unknown)?;
         if !entry.mapped() { return Err(Error::InvalidState); }
+        // The client may ignore the request or keep drawing a save dialog.
+        // Do not invalidate configurations, focus or mapping.
         entry.close_requested = true;
-        entry.pending = None;
-        entry.acknowledged = None;
-        if self.focus == Some(id) { self.focus = None; }
         Ok(())
     }
 
