@@ -21,12 +21,10 @@ jobs:
         run: |
           rustup toolchain install 1.100.0 --profile minimal
           rustup toolchain install 1.88.0 --profile minimal
-      - name: Resolve pinned upstream candidate
+      - name: Resolve reviewed candidate and build with workspace Rust
         run: bash tools/smithay-lab/build.sh evidence
       - name: Probe nested compositor
         run: bash tools/smithay-lab/run.sh evidence
-      - name: Compare provisional workspace Rust with same lock
-        run: bash tools/smithay-lab/check_workspace_rust.sh evidence
       - uses: actions/upload-artifact@v4
         if: always()
         with:

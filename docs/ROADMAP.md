@@ -66,3 +66,6 @@ The external Weston and Smallvil multiclient runs [45998837761](https://github.c
 
 ## M02 — Connection lifecycle preparation
 [Run 46014792298](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46014792298): nested reference runtime PASS under 1.100.0; offline cargo check with the same lock on Rust 1.88.0 exit 0, not a runtime test of 1.88. Keep workspace Rust unchanged. Original connection-scoped window dispatch and disconnect cleanup implemented in separate SupraWindow module, no external dependencies. Tests pending. Runtime adoption and license ratification remain open.
+
+## M02 — Connection model PASS and pinned lab resolution
+[Run 46020408962](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46020408962): workspace tests, Clippy and deterministic fixtures PASS with connection dispatch and disconnect tests. Reference dependency resolution hash now gated against reviewed artifact; build/run on workspace Rust 1.88.0 instead of check-only, CI pending. This is the final outstanding toolchain runtime question, not own compositor implementation. Own license ratification and adoption review remain required.
