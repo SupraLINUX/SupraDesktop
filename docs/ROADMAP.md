@@ -69,3 +69,6 @@ The external Weston and Smallvil multiclient runs [45998837761](https://github.c
 
 ## M02 — Connection model PASS and pinned lab resolution
 [Run 46020408962](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46020408962): workspace tests, Clippy and deterministic fixtures PASS with connection dispatch and disconnect tests. Reference dependency resolution hash now gated against reviewed artifact; build/run on workspace Rust 1.88.0 instead of check-only, CI pending. This is the final outstanding toolchain runtime question, not own compositor implementation. Own license ratification and adoption review remain required.
+
+## M02 — Rust runtime PASS / dependency evidence
+[Run 46027514910](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46027514910): exact reviewed lock and actual nested Smallvil runtime with Rust 1.88.0 PASS, two clients and survivor progress. Preserve workspace Rust; new crate license-file/native link inventory CI pending. License decision remains PROPOSED and no dependency adopted.
