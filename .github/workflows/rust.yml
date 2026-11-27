@@ -29,6 +29,8 @@ jobs:
           python3 tools/supra-lab/optics_metrics.py evidence-repeat
           cmp evidence/optics-metrics.json evidence-repeat/optics-metrics.json
           cmp evidence/scene-metrics.json evidence-repeat/scene-metrics.json
+          cmp evidence/window-optics-metrics.json evidence-repeat/window-optics-metrics.json
+          cat evidence/window-optics-metrics.json
           cat evidence/scene-metrics.json
           python3 tools/supra-lab/encode_png.py
       - uses: actions/upload-artifact@v4

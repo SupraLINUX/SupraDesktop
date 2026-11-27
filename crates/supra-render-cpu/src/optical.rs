@@ -8,7 +8,9 @@ use supra_glass::{blur::gaussian, material::Material};
 use supra_scene::Rect;
 use std::collections::BTreeSet;
 
-#[derive(Clone, Copy)]
+pub mod incremental;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Glass {
     pub sigma: f64,
     pub radius: f64,

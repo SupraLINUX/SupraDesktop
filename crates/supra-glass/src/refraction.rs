@@ -1,6 +1,6 @@
 //! Experimental single-interface refraction reference, not a macOS material.
 //! Distances are in caller-selected consistent units.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Refraction {
     band: f64,
     depth: f64,
@@ -20,6 +20,10 @@ impl Refraction {
         }
         Some(Self { band, depth, slope, index })
     }
+
+    /// Conservative bound on displacement: refraction toward the normal
+    /// cannot bend the ray by more than the incident angle atan(slope).
+    pub fn displacement_bound(self) -> f64 { self.depth * self.slope }
 
     /// Cosine of the incident angle for the same synthetic surface profile.
     pub fn incidence_cosine(self, signed_distance: f64) -> Option<f64> {

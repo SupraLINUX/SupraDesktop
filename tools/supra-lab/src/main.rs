@@ -9,6 +9,7 @@ fn main() -> io::Result<()> {
     fs::write(output.join("refraction.ppm"), supra_lab::refraction_fixture::ppm())?;
     fs::write(output.join("material.ppm"), supra_lab::material_fixture::ppm())?;
     fs::write(output.join("window-optics.ppm"), supra_lab::window_optics_fixture::ppm())?;
+    fs::write(output.join("window-optics-metrics.json"), supra_lab::window_optics_fixture::incremental_experiment())?;
     fs::write(output.join("scene-metrics.json"), supra_lab::scene_fixture::experiment())?;
     fs::write(
         output.join("report.json"),

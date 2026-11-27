@@ -22,7 +22,7 @@ fn valid_rgb(rgb: [f64; 3]) -> bool {
     rgb.iter().all(|v| v.is_finite() && (0.0..=1.0).contains(v))
 }
 
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq)]
 pub struct Material {
     optics: [Refraction; 3],
     indices: [f64; 3],
@@ -43,6 +43,11 @@ impl Material {
                       Refraction::new(band, depth, slope, indices[1])?,
                       Refraction::new(band, depth, slope, indices[2])?];
         Some(Self { optics, indices, tint, tint_weight })
+    }
+
+    /// Maximum conservative per-axis sampling displacement in geometry units.
+    pub fn displacement_bound(self) -> f64 {
+        self.optics.iter().map(|r| r.displacement_bound()).fold(0.0,f64::max)
     }
 
     /// Input and output are linear RGB in [0,1]. Backdrop supplies prefiltered

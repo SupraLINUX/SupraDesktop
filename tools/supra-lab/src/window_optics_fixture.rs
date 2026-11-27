@@ -1,7 +1,7 @@
 //! Original deterministic optical composition of real retained window bytes.
 use supra_geometry::Corner;
 use supra_glass::material::Material;
-use supra_render_cpu::{Placed,optical::{Glass,OpticalLayer,compose}};
+use supra_render_cpu::{Placed,optical::{Glass,OpticalLayer,compose,incremental::Incremental}};
 use supra_window::{Size,cpu_content::{CpuCoordinator,Format,Layout,View,Snapshot}};
 
 const W:u32=160;
@@ -68,5 +68,71 @@ mod tests {
             let i=(y*W+x) as usize; all[i]!=lower[i]
         })));
         assert_eq!(ppm(),ppm());
+    }
+}
+
+// Clones retain the same immutable pixel allocation and revision. Positions
+// change independently of the client commit, as a window manager would.
+fn clone_layer(layer:&OpticalLayer)->OpticalLayer {
+    let s=&layer.placed.snapshot;
+    OpticalLayer { glass:layer.glass,placed:Placed { x:layer.placed.x,y:layer.placed.y,
+        snapshot:Snapshot { window:s.window,generation:s.generation,state:s.state,content:s.content.clone() } } }
+}
+
+pub fn incremental_experiment()->String {
+    let layers=fixture_layers();
+    let mut cached=Incremental::new(W,H).unwrap();
+    let mut prefix_pixels=0;
+    let mut optical_pixels=0;
+    let mut blur_passes=0;
+    let mut full_pixels=0;
+    for step in 0..24 {
+        let mut next:Vec<_>=layers.iter().map(clone_layer).collect();
+        next[1].placed.x += (step/3)%8;
+        next[2].placed.y += (step/5)%5;
+        if step>=20 { next.swap(1,2); }
+        let expected=compose(W,H,&next).unwrap();
+        let work=cached.update(next).unwrap();
+        assert_eq!(cached.pixels(),expected, "frame {step}");
+        prefix_pixels += work.prefix_pixels;
+        optical_pixels += work.optical_pixels;
+        blur_passes += work.blur_passes;
+        full_pixels += (W*H*3) as usize;
+    }
+    format!("{{\"schema_version\":1,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"full_plane_blur_passes\":{blur_passes}}}\n")
+}
+
+#[cfg(test)]
+mod incremental_tests {
+    use super::*;
+    #[test]
+    fn movement_and_reorder_match_full_render() { assert!(incremental_experiment().contains("\"pixel_exact\":true")); }
+
+    #[test]
+    fn unchanged_and_upper_only_skip_lower_prefixes_and_invalid_update_preserves_frame() {
+        let layers=fixture_layers();
+        let mut c=Incremental::new(W,H).unwrap();
+        c.update(layers.iter().map(clone_layer).collect()).unwrap();
+        let zero=c.update(layers.iter().map(clone_layer).collect()).unwrap();
+        assert_eq!(zero.prefix_pixels,0);
+        assert_eq!(zero.blur_passes,0);
+        let mut moved:Vec<_>=layers.iter().map(clone_layer).collect();
+        moved[2].placed.x+=1;
+        let expected=compose(W,H,&moved).unwrap();
+        let work=c.update(moved).unwrap();
+        assert_eq!(c.pixels(),expected);
+        assert_eq!(work.blur_passes,1);
+        assert!(work.prefix_pixels < (W*H) as usize);
+        let mut invalid:Vec<_>=layers.iter().map(clone_layer).collect();
+        invalid[1].glass.as_mut().unwrap().sigma=f64::NAN;
+        assert!(c.update(invalid).is_err());
+        assert_eq!(c.pixels(),expected);
+        let mut changed:Vec<_>=layers.iter().map(clone_layer).collect();
+        changed[1].glass.as_mut().unwrap().sigma=3.0;
+        let expected=compose(W,H,&changed).unwrap();
+        c.update(changed).unwrap();
+        assert_eq!(c.pixels(),expected);
+        c.update(vec![]).unwrap();
+        assert!(c.pixels().iter().all(|p| *p==[0,0,0,255]));
     }
 }
