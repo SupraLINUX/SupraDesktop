@@ -49,7 +49,7 @@ impl Frames {
     }
 
     pub(crate) fn ready(&mut self, window: WindowId, generation: u64, visible: bool) -> Vec<u64> {
-        if !visible || !self.mapped_from.get(&window).is_some_and(|&first| generation >= first) {
+        if !visible || self.mapped_from.get(&window).is_none_or(|&first| generation < first) {
             return Vec::new();
         }
         let Some(queue) = self.queues.get_mut(&window) else { return Vec::new(); };
