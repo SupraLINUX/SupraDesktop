@@ -4,6 +4,7 @@
 pub mod buffers;
 pub mod clients;
 pub mod commit;
+mod frames;
 pub mod surface;
 pub mod wire;
 

@@ -4,7 +4,7 @@
 use std::collections::BTreeMap;
 use crate::{Configure, Size, Window, WindowId,
     buffers::{BufferId, Buffers, Completion, Destroy, UseId},
-    clients::ClientId, surface::{Attachment, Commit, Surface}, wire::WireWindows};
+    clients::ClientId, frames::Frames, surface::{Attachment, Commit, Surface}, wire::WireWindows};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Error {
@@ -13,6 +13,9 @@ pub enum Error {
     Surface(crate::surface::Error),
     UnknownClient,
     InconsistentContent,
+    DuplicateCallback,
+    CallbackCapacity,
+    InvalidGeneration,
 }
 
 impl From<crate::wire::Error> for Error {
@@ -38,6 +41,7 @@ pub struct Committed {
 pub struct Disconnected {
     pub windows: Vec<WindowId>,
     pub pending_callbacks: Vec<u64>,
+    pub committed_callbacks: Vec<u64>,
     pub buffers: Vec<Destroy>,
 }
 
@@ -49,6 +53,7 @@ pub struct Coordinator {
     wire: WireWindows,
     buffers: Buffers,
     surfaces: BTreeMap<WindowId, Surface>,
+    frames: Frames,
 }
 
 impl Coordinator {
@@ -97,7 +102,12 @@ impl Coordinator {
     }
 
     pub fn frame(&mut self, client: ClientId, object: u32, callback: u64) -> Result<(), Error> {
-        Ok(self.pending(client, object)?.frame(callback)?)
+        let id = self.wire.resolve(client, object)?;
+        let surface = self.surfaces.get_mut(&id).ok_or(Error::InconsistentContent)?;
+        self.frames.validate_reservation(id, callback, surface.pending_frame_count())?;
+        surface.frame(callback)?;
+        self.frames.reserve(id, callback);
+        Ok(())
     }
 
     fn pending(&mut self, client: ClientId, object: u32) -> Result<&mut Surface, Error> {
@@ -138,7 +148,23 @@ impl Coordinator {
             self.wire.unmap(client, object).expect("validated role unmap");
         }
         let committed = surface.commit().expect("validated surface generation");
+        if !mapped && actual.is_some() {
+            self.frames.mapped(id, committed.generation);
+        } else if mapped && actual.is_none() {
+            self.frames.unmapped(id);
+        }
+        self.frames.committed(id, committed.generation, &committed.frame_requests);
         Ok(Committed { window: id, surface: committed, new_use })
+    }
+
+    /// Trusted render scheduler reports a visible frame boundary for the
+    /// generation it actually processed. This is not a presentation timestamp
+    /// or storage-release signal. The backend must emit each returned callback
+    /// once and retire its resource, or disconnect on transport failure.
+    pub fn frame_ready(&mut self, id: WindowId, generation: u64, visible: bool) -> Result<Vec<u64>, Error> {
+        let surface = self.surfaces.get(&id).ok_or(Error::InconsistentContent)?;
+        if generation == 0 || generation > surface.generation() { return Err(Error::InvalidGeneration); }
+        Ok(self.frames.ready(id, generation, visible))
     }
 
     pub fn complete(&mut self, token: UseId) -> Result<Completion, Error> {
@@ -148,16 +174,22 @@ impl Coordinator {
     pub fn destroy(&mut self, client: ClientId, object: u32) -> Result<Vec<u64>, Error> {
         let id = self.wire.resolve(client, object)?;
         self.wire.destroy(client, object)?;
-        Ok(self.surfaces.remove(&id).expect("registered surface").discard_pending())
+        let mut pending = self.surfaces.remove(&id).expect("registered surface").discard_pending();
+        let committed = self.frames.cancel(id, &pending);
+        pending.extend(committed);
+        Ok(pending)
     }
 
     pub fn disconnect(&mut self, client: ClientId) -> Result<Disconnected, Error> {
         let windows = self.wire.disconnect(client)?;
         let mut pending_callbacks = Vec::new();
+        let mut committed_callbacks = Vec::new();
         for id in &windows {
-            pending_callbacks.extend(self.surfaces.remove(id).expect("registered surface").discard_pending());
+            let pending = self.surfaces.remove(id).expect("registered surface").discard_pending();
+            committed_callbacks.extend(self.frames.cancel(*id, &pending));
+            pending_callbacks.extend(pending);
         }
         let buffers = self.buffers.disconnect(client)?;
-        Ok(Disconnected { windows, pending_callbacks, buffers })
+        Ok(Disconnected { windows, pending_callbacks, committed_callbacks, buffers })
     }
 }
