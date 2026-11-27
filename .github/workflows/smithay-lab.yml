@@ -1,0 +1,30 @@
+name: Smithay upstream candidate lab
+on:
+  push:
+    paths: ['tools/smithay-lab/**', 'tools/wayland-lab/trace.py', '.github/workflows/smithay-lab.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upstream:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install external lab tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends weston wayland-utils libxkbcommon-dev libwayland-dev libegl1-mesa-dev libgl1-mesa-dev libgl1-mesa-dri pkg-config
+      - name: Resolve pinned upstream candidate
+        run: bash tools/smithay-lab/build.sh evidence
+      - name: Probe nested compositor
+        run: bash tools/smithay-lab/run.sh evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: smithay-candidate-evidence
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn

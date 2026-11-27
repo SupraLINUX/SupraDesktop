@@ -1,0 +1,5 @@
+# Smithay candidate lab
+
+Pinned upstream [v0.7.0](https://github.com/Smithay/smithay/tree/a166cf4c94b5aedc332a65aa1dd753e8148829c3), top-level [MIT license](https://github.com/Smithay/smithay/blob/a166cf4c94b5aedc332a65aa1dd753e8148829c3/LICENSE.txt), Smallvil example with backend_winit, wayland_frontend and desktop only. No source copied into this repository. External source is fetched in the ephemeral runner, built and tested, not distributed as an artifact. The build records the generated lock, feature graph, reported dependency licenses, source revision and toolchain. Transitive license declarations are an inventory, not clearance. The upstream lock is not tracked, so independent builds can resolve different versions.
+
+The nested runtime uses a private Wayland socket, Weston headless, software rendering requested and unmodified Smallvil; a real SHM client is evaluated with the existing trace validator. This is a feasibility test, not the SupraDesktop compositor, a hardware GPU test, protocol conformance or license ratification. CI pending.

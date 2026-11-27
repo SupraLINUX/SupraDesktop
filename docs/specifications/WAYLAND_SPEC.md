@@ -20,3 +20,6 @@ P0/P1: ext-background-effect-v1 (blur por región; soporte upstream a verificar 
 
 ## Real protocol baseline (external reference)
 [Wayland lab](../../tools/wayland-lab/README.md): independent Weston headless CI, private socket, bounded SHM client, per-object trace checks and artifacts. Ubuntu provides the external reference compositor; no code imported into SupraDesktop. Reuse the same client and trace contract when the real compositor backend is authorized. Focus, input, resize, screenshots, buffer release and own compositor remain NOT_RUN.
+
+## Pinned nested Smithay feasibility test
+[Candidate lab](../../tools/smithay-lab/README.md) runs unmodified upstream Smallvil on Weston in separate ephemeral CI, with Mesa software rendering requested, private socket and the existing real-client evidence checks. No host session, no Smithay code imported into SupraDesktop. This is an external feasibility experiment, not M02 completion. CI pending.

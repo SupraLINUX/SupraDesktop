@@ -54,3 +54,6 @@ M01 second increment: CPU Gaussian reference and local G2 cubic candidate, indep
 
 ## M02 — Reference environment probe
 [Run 45872169105](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45872169105): SupraWindow lifecycle, existing workspace, Clippy and fixtures PASS. New independent Wayland lab runs packaged Weston headless/Pixman with an isolated runtime socket and external SHM client. Requires globals, per-object xdg configure/ack, non-null buffer attach/commit and a frame callback; emits trace and package versions. This validates reference infrastructure only, not SupraCompositor. No source or runtime dependency adopted; Smithay and license decisions remain open. CI pending.
+
+## M02 — Smithay candidate lab
+[Run 45934029405](https://github.com/SupraLINUX/SupraDesktop/actions/runs/45934029405): real external Weston/SHM trace PASS. Added isolated upstream Smallvil build and nested runtime at Smithay v0.7.0 commit a166cf4c94b5aedc332a65aa1dd753e8148829c3. Collect dependency/feature inventory, generated lock and toolchain; use existing trace validator. Does not import code into the project or select final backend. CI pending; license ratification and transitive review remain required.
