@@ -84,6 +84,10 @@ impl Coordinator {
         Ok(self.wire.acknowledge(client, object, serial)?)
     }
 
+    pub(crate) fn resolve(&self, client: ClientId, object: u32) -> Result<WindowId, Error> {
+        Ok(self.wire.resolve(client, object)?)
+    }
+
     pub fn window(&self, id: WindowId) -> Option<&Window> { self.wire.get(id) }
     pub fn surface(&self, id: WindowId) -> Option<&Surface> { self.surfaces.get(&id) }
 
