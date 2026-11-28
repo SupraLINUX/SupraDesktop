@@ -59,3 +59,6 @@ Scheduler correction passed [46052655793](https://github.com/SupraLINUX/SupraDes
 
 ## CPU presentation validated; signed ordinary surface placement
 [46097932757](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46097932757) PASS for all four presentation tests. Signed ordinary CPU placements preserve uncut client logical origin while clipping to nonnegative output pixels; fully offscreen snapshots cannot trigger callback eligibility. New tests pending CI; optical material geometry remains unsigned and separate. No fractional/output transform, protocol transport or presentation-time conformance claim.
+
+## Shared ordinary and optical presentation boundary (CI pending)
+A private Boundary owns the identical frame token and generation completion semantics for the two independent CPU rendering paths. Both acquire actual retained snapshots, report only caller-eligible output-intersecting generations and preserve callback queues on discarded or rejected rendering. Optical material comes from trusted shell policy, not from the core Wayland client. No actual Wayland transport or presentation-time feedback yet.

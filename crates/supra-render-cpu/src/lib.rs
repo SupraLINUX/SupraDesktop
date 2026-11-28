@@ -28,9 +28,6 @@ impl Placed {
             revision: s.generation, backdrop_radius: None })
     }
 
-    fn sample(&self, x: u32, y: u32) -> [u8; 4] {
-        sample_local(&self.snapshot,x-self.x,y-self.y)
-    }
 }
 
 fn sample_local(s:&Snapshot,x:u32,y:u32)->[u8;4] {

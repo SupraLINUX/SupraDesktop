@@ -36,61 +36,61 @@ pub enum Error {
     Logical(supra_window::cpu_content::Error),
 }
 
+mod optical;
+pub use optical::{OpticalPlacement,OpticalPresentation,OpticalSubmission};
+
 struct Pending {
     token:FrameToken,
     visible:Vec<(WindowId,u64)>,
 }
 
-/// One in-flight image per output: pixels remain stable until the backend
-/// acknowledges or discards that submission. CPU cache survives a discard;
-/// only a subsequent accepted boundary may consume frame callbacks.
-pub struct CpuPresentation {
+struct Captured {
+    surfaces:Vec<SignedPlaced>,
+    visible:Vec<(WindowId,u64)>,
+}
+
+/// Common submission lifecycle. Rendering backends own their pixels; this
+/// is the sole adapter authority over pending tokens and callback boundaries.
+struct Boundary {
     owner:CoordinatorIdentity,
-    frame:Frame,
     pending:Option<Pending>,
 }
 
-impl CpuPresentation {
-    pub fn new(coordinator:&CpuCoordinator,width:u32,height:u32,max_pixels:usize)->Result<Self,Error> {
-        Ok(Self{owner:coordinator.identity(),frame:Frame::new(width,height,max_pixels).map_err(Error::Render)?,pending:None})
+impl Boundary {
+    fn new(coordinator:&CpuCoordinator)->Self {
+        Self{owner:coordinator.identity(),pending:None}
     }
 
-    /// Placements are trusted scene policy, bottom to top. Acquire actual
-    /// retained snapshots from the canonical coordinator, never caller-supplied
-    /// generations or fabricated pixel snapshots.
-    pub fn submit(&mut self,coordinator:&CpuCoordinator,placements:&[Placement])->Result<Submission,Error> {
+    fn capture(&self,coordinator:&CpuCoordinator,output:supra_scene::Rect,
+        placements:impl ExactSizeIterator<Item=Placement>,limit:usize)->Result<Captured,Error> {
         if !coordinator.matches_identity(&self.owner) { return Err(Error::WrongCoordinator); }
         if self.pending.is_some() { return Err(Error::Busy); }
-        if placements.len()>MAX_PLACEMENTS { return Err(Error::Capacity); }
+        if placements.len()>limit { return Err(Error::Capacity); }
         let mut surfaces=Vec::with_capacity(placements.len());
         let mut visible=Vec::new();
         for p in placements {
             let snapshot=coordinator.snapshot(p.window).ok_or(Error::UnknownWindow)?;
             let surface=SignedPlaced{x:p.x,y:p.y,snapshot};
-            if let Some(layer)=surface.visible_layer(self.frame.output).map_err(Error::Render)? {
+            if let Some(layer)=surface.visible_layer(output).map_err(Error::Render)? {
                 if p.callback_eligible { visible.push((p.window,layer.revision)); }
             }
             surfaces.push(surface);
         }
-        let recomposited_pixels=self.frame.update_signed(surfaces).map_err(Error::Render)?;
+        Ok(Captured{surfaces,visible})
+    }
+
+    // Publish only after a successful transactional render.
+    fn submitted(&mut self,visible:Vec<(WindowId,u64)>)->FrameToken {
         let token=FrameToken(Arc::new(()));
         self.pending=Some(Pending{token:token.clone(),visible});
-        Ok(Submission{token,recomposited_pixels})
+        token
     }
 
     fn pending(&self,token:&FrameToken)->Result<&Pending,Error> {
         self.pending.as_ref().filter(|p|Arc::ptr_eq(&p.token.0,&token.0)).ok_or(Error::UnknownFrame)
     }
 
-    /// Valid only for the current submission, not a discarded/stale image.
-    pub fn pixels(&self,token:&FrameToken)->Result<&[[u8;4]],Error> {
-        self.pending(token)?;
-        Ok(self.frame.pixels())
-    }
-
-    /// Trusted backend calls this at an accepted frame boundary. This returns
-    /// throttling callback IDs, not wp_presentation feedback or buffer release.
-    pub fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+    fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
         if !coordinator.matches_identity(&self.owner) { return Err(Error::WrongCoordinator); }
         let pending=self.pending(token)?;
         let ready=coordinator.frame_ready_batch(&pending.visible).map_err(Error::Logical)?;
@@ -98,9 +98,46 @@ impl CpuPresentation {
         Ok(ready)
     }
 
-    pub fn discard(&mut self,token:&FrameToken)->Result<(),Error> {
+    fn discard(&mut self,token:&FrameToken)->Result<(),Error> {
         self.pending(token)?;
         self.pending=None;
         Ok(())
+    }
+}
+
+/// One in-flight image per output: pixels remain stable until the backend
+/// acknowledges or discards that submission. CPU cache survives a discard;
+/// only a subsequent accepted boundary may consume frame callbacks.
+pub struct CpuPresentation {
+    boundary:Boundary,
+    frame:Frame,
+}
+
+impl CpuPresentation {
+    pub fn new(coordinator:&CpuCoordinator,width:u32,height:u32,max_pixels:usize)->Result<Self,Error> {
+        Ok(Self{boundary:Boundary::new(coordinator),frame:Frame::new(width,height,max_pixels).map_err(Error::Render)?})
+    }
+
+    /// Placements are trusted scene policy, bottom to top. Acquire actual
+    /// retained snapshots from the canonical coordinator.
+    pub fn submit(&mut self,coordinator:&CpuCoordinator,placements:&[Placement])->Result<Submission,Error> {
+        let captured=self.boundary.capture(coordinator,self.frame.output,placements.iter().copied(),MAX_PLACEMENTS)?;
+        let recomposited_pixels=self.frame.update_signed(captured.surfaces).map_err(Error::Render)?;
+        let token=self.boundary.submitted(captured.visible);
+        Ok(Submission{token,recomposited_pixels})
+    }
+
+    pub fn pixels(&self,token:&FrameToken)->Result<&[[u8;4]],Error> {
+        self.boundary.pending(token)?;
+        Ok(self.frame.pixels())
+    }
+
+    /// Accepted backend boundary, not presentation-time or storage release.
+    pub fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+        self.boundary.complete(coordinator,token)
+    }
+
+    pub fn discard(&mut self,token:&FrameToken)->Result<(),Error> {
+        self.boundary.discard(token)
     }
 }
