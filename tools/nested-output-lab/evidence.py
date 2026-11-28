@@ -9,42 +9,101 @@ EVENT = re.compile(r"\b([a-z_0-9]+)[#@](\d+)\.([a-z_0-9]+)\((.*)\)")
 
 
 def verify(trace, renderer):
-    requests = []
-    done = set()
-    buffers = set()
-    releases = set()
-    attached = set()
-    commits = 0
+    # IDs are reusable across object lifetimes. Track live callback purpose,
+    # not membership in a historical set; delete_id can precede done in a
+    # libwayland debug trace, so consume on the typed event itself.
+    callbacks = {}
+    buffers = {}
+    surfaces = {}
+    xdg = {}
+    configured = {}
+    acknowledged = set()
+    frames = 0
+    releases = 0
+    def ref(args, interface):
+        m = re.search(r"\b" + interface + r"[#@](\d+)", args)
+        if not m:
+            raise ValueError(f"Missing {interface} reference")
+        return m[1]
     for line in trace.splitlines():
         match = EVENT.search(line)
         if not match:
             continue
         interface, oid, event, args = match.groups()
+        request = "->" in line[:match.start()]
         if interface == "wl_display" and event == "error":
             raise ValueError("Host protocol error")
-        if interface == "wl_shm_pool" and event == "create_buffer":
-            b = re.search(r"wl_buffer[#@](\d+)", args)
-            if b:
-                buffers.add(b[1])
-        if interface == "wl_surface" and event == "attach":
-            b = re.search(r"wl_buffer[#@](\d+)", args)
-            if b:
-                attached.add(b[1])
-        if interface == "wl_surface" and event == "commit":
-            commits += 1
-        if interface == "wl_surface" and event == "frame":
-            c = re.search(r"wl_callback[#@](\d+)", args)
-            if c:
-                requests.append(c[1])
-        if interface == "wl_callback" and event == "done" and oid in requests:
-            done.add(oid)
-        if interface == "wl_buffer" and event == "release":
-            releases.add(oid)
-    # Callback object IDs can be recycled; count done events as well.
-    callbacks = [EVENT.search(line) for line in trace.splitlines()]
-    matching = sum(1 for m in callbacks if m and m[1] == "wl_callback" and m[3] == "done" and m[2] in requests)
-    if len(requests) != 2 or matching != 2 or not done or len(buffers) != 2 or attached != buffers or releases != buffers or commits < 4:
-        raise ValueError("Incomplete real host frame/buffer lifecycle")
+        if request and interface == "wl_compositor" and event == "create_surface":
+            surfaces[ref(args, "wl_surface")] = {"attach": None, "frame": None, "commits": 0}
+        elif request and interface == "xdg_wm_base" and event == "get_xdg_surface":
+            xdg[ref(args, "xdg_surface")] = ref(args, "wl_surface")
+        elif not request and interface == "xdg_surface" and event == "configure":
+            configured[oid] = args.strip()
+        elif request and interface == "xdg_surface" and event == "ack_configure":
+            if configured.get(oid) != args.strip() or oid not in xdg:
+                raise ValueError("Unmatched configure")
+            acknowledged.add(xdg[oid])
+        elif request and interface == "wl_shm_pool" and event == "create_buffer":
+            b = ref(args, "wl_buffer")
+            if b in buffers:
+                raise ValueError("Duplicate buffer lifetime")
+            if not re.search(r",\s*0,\s*160,\s*96,\s*640,\s*1$", args):
+                raise ValueError("Unexpected buffer layout")
+            buffers[b] = "created"
+        elif request and ((interface == "wl_surface" and event == "frame") or
+                          (interface == "wl_display" and event == "sync")):
+            cb = ref(args, "wl_callback")
+            if cb in callbacks:
+                raise ValueError("Overlapping callback lifetime")
+            if interface == "wl_display":
+                callbacks[cb] = ("sync", None)
+            else:
+                s = surfaces[oid]
+                if s["frame"] is not None:
+                    raise ValueError("Overlapping surface frame")
+                s["frame"] = cb
+                callbacks[cb] = ("pending", oid)
+        elif request and interface == "wl_surface" and event == "attach":
+            s = surfaces[oid]
+            if args.startswith("nil") or args.startswith("null"):
+                s["attach"] = None
+            else:
+                b = ref(args, "wl_buffer")
+                if oid not in acknowledged or buffers.get(b) != "created":
+                    raise ValueError("Unconfigured or invalid buffer attach")
+                s["attach"] = b
+        elif request and interface == "wl_surface" and event == "commit":
+            s = surfaces[oid]
+            s["commits"] += 1
+            b, cb = s["attach"], s["frame"]
+            if b is not None:
+                if cb is None or buffers.get(b) != "created":
+                    raise ValueError("Buffer commit without new frame request")
+                buffers[b] = "committed"
+                callbacks[cb] = ("committed", oid)
+            elif cb is not None:
+                raise ValueError("Frame without buffer")
+        elif not request and interface == "wl_callback" and event == "done":
+            kind, surface = callbacks.pop(oid, ("unknown", None))
+            if kind == "sync":
+                continue
+            if kind != "committed" or surfaces[surface]["frame"] != oid:
+                raise ValueError("Callback without committed frame")
+            surfaces[surface]["frame"] = None
+            frames += 1
+        elif not request and interface == "wl_buffer" and event == "release":
+            if buffers.get(oid) != "committed":
+                raise ValueError("Release before commit or duplicate release")
+            buffers[oid] = "released"
+            releases += 1
+        elif request and interface == "wl_buffer" and event == "destroy":
+            if buffers.get(oid) != "released":
+                raise ValueError("Buffer destroyed before release")
+            buffers[oid] = "destroyed"
+    if (frames != 2 or releases != 2 or len(buffers) != 2 or
+        any(v != "destroyed" for v in buffers.values()) or callbacks or
+        len(surfaces) != 1 or next(iter(surfaces.values()))["commits"] != 4):
+        raise ValueError(f"Incomplete host lifecycle: frames={frames}, releases={releases}, buffers={buffers}, callbacks={callbacks}")
     if renderer.splitlines() != ["SUPRA_NESTED_FRAME_1_COMPLETE", "SUPRA_NESTED_FRAME_2_COMPLETE", "SUPRA_NESTED_BUFFERS_RELEASED"]:
         raise ValueError("Invalid renderer completion sequence")
 

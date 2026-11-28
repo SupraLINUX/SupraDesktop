@@ -13,6 +13,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Test trace lifecycle validator
+        run: python3 -m unittest discover -s tools/nested-output-lab -p 'test_*.py'
       - name: Install external test-only tools
         run: |
           sudo apt-get update -qq
