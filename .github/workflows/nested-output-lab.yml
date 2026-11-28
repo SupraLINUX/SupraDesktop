@@ -1,0 +1,28 @@
+name: Supra optical Wayland output lab
+on:
+  push:
+    paths: ['crates/**', 'tools/supra-lab/**', 'tools/nested-output-lab/**', '.github/workflows/nested-output-lab.yml']
+  pull_request:
+    paths: ['crates/**', 'tools/supra-lab/**', 'tools/nested-output-lab/**', '.github/workflows/nested-output-lab.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  nested-output:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install external test-only tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends weston libwayland-dev wayland-protocols
+      - name: Run isolated optical output transport
+        run: bash tools/nested-output-lab/run.sh evidence
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: supra-optical-wayland-output
+          path: evidence/
+          retention-days: 7
+          if-no-files-found: warn

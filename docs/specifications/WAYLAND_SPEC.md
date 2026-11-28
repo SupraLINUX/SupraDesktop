@@ -62,3 +62,6 @@ Scheduler correction passed [46052655793](https://github.com/SupraLINUX/SupraDes
 
 ## Shared ordinary and optical presentation boundary (CI pending)
 A private Boundary owns the identical frame token and generation completion semantics for the two independent CPU rendering paths. Both acquire actual retained snapshots, report only caller-eligible output-intersecting generations and preserve callback queues on discarded or rejected rendering. Optical material comes from trusted shell policy, not from the core Wayland client. No actual Wayland transport or presentation-time feedback yet.
+
+## External optical output transport (CI pending)
+[46140247343](https://github.com/SupraLINUX/SupraDesktop/actions/runs/46140247343) PASS for shared presentation boundary. Separate nested-output-lab tests actual host Wayland drawing boundaries and independent wl_buffer.release using system libwayland-client and generated xdg-shell bindings only in CI. Rust renderer is not a Wayland server yet. Host frame callbacks are throttling, not presentation-time feedback or physical presentation. No runtime dependency adopted.

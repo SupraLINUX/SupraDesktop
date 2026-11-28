@@ -3,6 +3,11 @@ use std::{env, fs, io, path::PathBuf};
 fn main() -> io::Result<()> {
     let mut args=env::args_os().skip(1);
     let first=args.next().unwrap_or_else(|| "evidence".into());
+    if first=="--nested-output" {
+        let helper=PathBuf::from(args.next().ok_or_else(||io::Error::other("missing helper"))?);
+        let dir=PathBuf::from(args.next().ok_or_else(||io::Error::other("missing output directory"))?);
+        return supra_lab::nested_output::run(&helper,&dir);
+    }
     if first=="--optics-benchmark" {
         let output=PathBuf::from(args.next().unwrap_or_else(|| "optics-benchmark.csv".into()));
         return fs::write(output,supra_lab::optics_benchmark::csv());
