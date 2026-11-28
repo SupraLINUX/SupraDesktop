@@ -68,6 +68,16 @@ fn run_frames(input:&mut impl Write,output:&mut impl BufRead,dir:&Path)->io::Res
         let expected=if n==1 {vec![(bg,vec![10]),(pane,vec![20])]} else {vec![(pane,vec![21])]};
         assert_eq!(callbacks,expected);
         println!("SUPRA_NESTED_FRAME_{n}_COMPLETE");
+        // Optional isolated readback experiment: keep the same surface
+        // committed until the external capture process has exited.
+        if let Some(capture)=std::env::var_os("SUPRA_LAB_CAPTURE_SCRIPT") {
+            let status=Command::new("bash").arg(capture).arg(dir).arg(n.to_string())
+                .env_remove("WAYLAND_DEBUG").stdin(Stdio::null())
+                .stdout(Stdio::null()).stderr(Stdio::inherit()).status()?;
+            if !status.success() { return Err(io::Error::other(format!("Host capture failed: {status}"))); }
+        }
+        input.write_all(b"A")?;
+        input.flush()?;
         previous=rgba;
     }
     expect_line(output,"RELEASE 2")?;

@@ -117,6 +117,9 @@ int main(void) {
         wl_surface_commit(surface);
         while (!a.frame) pump(&a);
         printf("FRAME %u\n", n+1); fflush(stdout);
+        /* Hold the mapped frame until parent acknowledges; in the readback
+         * job the independent host capture must finish before this byte. */
+        check(fgetc(stdin) == 'A', "Missing renderer frame acknowledgment");
     }
     // Storage lifetime is independent of the drawing callback. Two distinct
     // allocations; retain both until the actual release events.

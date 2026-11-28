@@ -13,6 +13,16 @@ cleanup() {
 trap cleanup EXIT
 unset DISPLAY WAYLAND_SOCKET WAYLAND_DEBUG
 export XDG_RUNTIME_DIR="$runtime" WAYLAND_DISPLAY=supra-optical-output
+mode=${2:-transport}
+case "$mode" in transport|readback) ;; *) exit 1 ;; esac
+weston_flags=()
+unset SUPRA_LAB_CAPTURE_SCRIPT
+if [[ "$mode" = readback ]]; then
+    # Debug capture is enabled exclusively on the isolated CI compositor.
+    weston_flags=(--debug)
+    export SUPRA_LAB_CAPTURE_SCRIPT="$(realpath tools/nested-output-lab/capture.sh)"
+    command -v weston-screenshooter
+fi
 protocol="$(pkg-config --variable=pkgdatadir wayland-protocols)/stable/xdg-shell/xdg-shell.xml"
 wayland-scanner client-header "$protocol" "$runtime/xdg-shell-client-protocol.h"
 wayland-scanner private-code "$protocol" "$runtime/xdg-shell-protocol.c"
@@ -20,7 +30,7 @@ cc -std=c11 -Wall -Wextra -Werror -I"$runtime" tools/nested-output-lab/client.c 
     $(pkg-config --cflags --libs wayland-client) -o "$runtime/client"
 dpkg-query -W weston libwayland-dev wayland-protocols > "$out/versions.txt"
 weston --backend=headless-backend.so --use-pixman --socket="$WAYLAND_DISPLAY" \
-    --width=800 --height=600 --idle-time=0 --no-config --log="$out/weston.log" &
+    --width=800 --height=600 --idle-time=0 --no-config --log="$out/weston.log" "${weston_flags[@]}" &
 server=$!
 for _ in $(seq 1 100); do
     kill -0 "$server"
@@ -33,3 +43,7 @@ WAYLAND_DEBUG=client timeout --kill-after=5 60 target/debug/supra-lab --nested-o
     > "$out/renderer.log" 2> "$out/client.trace"
 kill -0 "$server"
 python3 tools/nested-output-lab/evidence.py "$out"
+
+if [[ "$mode" = readback ]]; then
+    /usr/bin/python3 tools/nested-output-lab/readback.py "$out"
+fi
