@@ -34,21 +34,47 @@ pub fn gaussian_region(input:&[f64],width:usize,height:usize,sigma:f64,r:Region)
     if input.iter().any(|x| !x.is_finite() || !(0.0..=1.0).contains(x)) {
         return Err(BlurError::InvalidSample);
     }
+    let source=source_region(width,height,sigma,r)?;
+    let cropped:Vec<_>=(source.y0..source.y1).flat_map(|y|
+        input[y*width+source.x0..y*width+source.x1].iter().copied()).collect();
+    gaussian_region_cropped(&cropped,width,height,sigma,r)
+}
+
+/// Exact rectangular source support for the requested output crop.
+pub fn source_region(width:usize,height:usize,sigma:f64,r:Region)->Result<Region,BlurError> {
+    if width==0 || height==0 || width>4096 || height>4096
+        || r.x0>=r.x1 || r.y0>=r.y1 || r.x1>width || r.y1>height {
+        return Err(BlurError::InvalidDimensions);
+    }
+    let radius=gaussian_kernel(sigma)?.len()/2;
+    Ok(Region{x0:r.x0.saturating_sub(radius),y0:r.y0.saturating_sub(radius),
+        x1:(r.x1+radius).min(width),y1:(r.y1+radius).min(height)})
+}
+
+/// Input must be tightly packed, row-major source_region(), NOT a full plane.
+/// Dimensions and samples checked before use. Global edge clamping is preserved.
+pub fn gaussian_region_cropped(input:&[f64],width:usize,height:usize,sigma:f64,r:Region)->Result<Cropped,BlurError> {
+    let source=source_region(width,height,sigma,r)?;
+    let sw=source.x1-source.x0;
+    if sw*(source.y1-source.y0)!=input.len() { return Err(BlurError::InvalidDimensions); }
+    if input.iter().any(|x| !x.is_finite() || !(0.0..=1.0).contains(x)) {
+        return Err(BlurError::InvalidSample);
+    }
     let weights=gaussian_kernel(sigma)?;
     let radius=weights.len()/2;
     let rw=r.x1-r.x0;
     let rh=r.y1-r.y0;
     if radius==0 {
-        let values=(r.y0..r.y1).flat_map(|y| input[y*width+r.x0..y*width+r.x1].iter().copied()).collect();
+        let values=input.to_vec();
         return Ok(Cropped {region:r,values,horizontal_samples:0,vertical_samples:0});
     }
-    let hy0=r.y0.saturating_sub(radius);
-    let hy1=(r.y1+radius).min(height);
+    let hy0=source.y0;
+    let hy1=source.y1;
     let mut horizontal=vec![0.0;rw*(hy1-hy0)];
     for y in hy0..hy1 { for x in r.x0..r.x1 {
         horizontal[(y-hy0)*rw+x-r.x0]=weights.iter().enumerate().map(|(i,w)| {
             let sx=(x as isize+i as isize-radius as isize).clamp(0,width as isize-1) as usize;
-            input[y*width+sx]*w
+            input[(y-source.y0)*sw+sx-source.x0]*w
         }).sum();
     }}
     let mut values=vec![0.0;rw*rh];
@@ -74,9 +100,15 @@ mod tests {
                 for r in [Region{x0:0,y0:0,x1:1,y1:1}, Region{x0:w/2,y0:h/2,x1:w,y1:h},
                     Region{x0:0,y0:0,x1:w,y1:h}] {
                     let crop=gaussian_region(&input,w,h,sigma,r).unwrap();
+                    let s=source_region(w,h,sigma,r).unwrap();
+                    let input_crop:Vec<_>=(s.y0..s.y1).flat_map(|y|
+                        input[y*w+s.x0..y*w+s.x1].iter().copied()).collect();
+                    let direct=gaussian_region_cropped(&input_crop,w,h,sigma,r).unwrap();
+                    assert!(gaussian_region_cropped(&input_crop[..input_crop.len()-1],w,h,sigma,r).is_err());
                     for y in 0..h { for x in 0..w {
                         let expected=(x>=r.x0 && y>=r.y0 && x<r.x1 && y<r.y1).then(|| full[y*w+x]);
                         assert_eq!(crop.get(x,y),expected);
+                        assert_eq!(direct.get(x,y),expected);
                     }}
                     assert!(crop.horizontal_samples<=w*h && crop.vertical_samples<=w*h);
                 }

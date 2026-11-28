@@ -88,6 +88,8 @@ pub fn incremental_experiment()->String {
     let mut full_pixels=0;
     let mut blur_samples=0;
     let mut full_plane_blur_samples=0;
+    let mut decoded_channels=0;
+    let mut full_plane_decoded_channels=0;
     for step in 0..24 {
         let mut next:Vec<_>=layers.iter().map(clone_layer).collect();
         next[1].placed.x += (step/3)%8;
@@ -101,10 +103,13 @@ pub fn incremental_experiment()->String {
         blur_passes += work.blur_passes;
         blur_samples += work.blur_samples;
         full_plane_blur_samples += work.full_plane_blur_samples;
+        decoded_channels += work.decoded_channels;
+        full_plane_decoded_channels += work.full_plane_decoded_channels;
         full_pixels += (W*H*3) as usize;
     }
     assert!(blur_samples < full_plane_blur_samples);
-    format!("{{\"schema_version\":2,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"blur_requests\":{blur_passes},\"cropped_blur_samples\":{blur_samples},\"full_plane_blur_samples\":{full_plane_blur_samples}}}\n")
+    assert!(decoded_channels < full_plane_decoded_channels);
+    format!("{{\"schema_version\":3,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"blur_requests\":{blur_passes},\"cropped_blur_samples\":{blur_samples},\"full_plane_blur_samples\":{full_plane_blur_samples},\"decoded_channels\":{decoded_channels},\"full_plane_decoded_channels\":{full_plane_decoded_channels}}}\n")
 }
 
 #[cfg(test)]
