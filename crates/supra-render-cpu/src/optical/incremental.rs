@@ -1,15 +1,14 @@
-//! Incremental prefix compositor. Whole-prefix buffers are retained for
-//! reference correctness; Gaussian passes evaluate a conservative crop.
+//! Incremental prefix compositor with copy-on-write linear pixel chunks.
+//! Gaussian passes evaluate a conservative crop.
 //! No GPU or measured latency claim.
 use super::{Glass, OpticalLayer, decode, encode};
 use crate::{Error, over};
 use supra_geometry::RoundedRect;
 use supra_glass::blur::region::{Cropped,Region,gaussian_region_cropped,source_region};
 use supra_scene::{Layer, Rect, disjoint_regions, plan};
-use std::{collections::BTreeSet, sync::Arc};
-
-type Pixel = [u8;4];
-type Prefix = Arc<Vec<Pixel>>;
+use std::collections::BTreeSet;
+mod blocks;
+use blocks::{Pixel,Prefix};
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Work {
@@ -22,6 +21,9 @@ pub struct Work {
     pub full_plane_blur_samples: usize,
     pub decoded_channels: usize,
     pub full_plane_decoded_channels: usize,
+    pub cow_copied_pixels: usize,
+    pub full_prefix_clone_pixels: usize,
+    pub published_pixels: usize,
 }
 
 pub struct Incremental {
@@ -29,6 +31,7 @@ pub struct Incremental {
     w: usize,
     h: usize,
     black: Prefix,
+    output_pixels: Vec<Pixel>,
     prefixes: Vec<Prefix>,
     previous: Vec<OpticalLayer>,
     descriptions: Vec<Layer>,
@@ -58,13 +61,13 @@ struct GlassPass {
 }
 
 impl GlassPass {
-    fn new(g: Glass, bounds: Rect, crop:Region, lower: &[Pixel], w: usize,h: usize) -> Result<Self,Error> {
+    fn new(g: Glass, bounds: Rect, crop:Region, lower: &Prefix, w: usize,h: usize) -> Result<Self,Error> {
         let (l,t,r,b) = bounds.edges();
         let shape = RoundedRect::new(f64::from(r-l),f64::from(b-t),g.radius,g.corner)
             .ok_or(Error::InvalidSurface)?;
         let source=source_region(w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?;
         let original: [Vec<f64>;3] = std::array::from_fn(|c| (source.y0..source.y1).flat_map(|y|
-            lower[y*w+source.x0..y*w+source.x1].iter().map(move |p| decode(p[c]))).collect());
+            (source.x0..source.x1).map(move |x| decode(lower.get(y*w+x)[c]))).collect());
         let blurred = [
             gaussian_region_cropped(&original[0],w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?,
             gaussian_region_cropped(&original[1],w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?,
@@ -126,12 +129,12 @@ impl Incremental {
         let (w,h) = (width as usize,height as usize);
         let len = w.checked_mul(h).filter(|&n| n <= 262144).ok_or(Error::InvalidOutput)?;
         if width > 4096 || height > 4096 { return Err(Error::InvalidOutput); }
-        Ok(Self { output,w,h,black:Arc::new(vec![[0,0,0,255];len]),
+        Ok(Self { output,w,h,black:Prefix::black(len),output_pixels:vec![[0,0,0,255];len],
             prefixes:Vec::new(),previous:Vec::new(),descriptions:Vec::new() })
     }
 
     pub fn pixels(&self) -> &[Pixel] {
-        self.prefixes.last().unwrap_or(&self.black)
+        &self.output_pixels
     }
 
     /// Transactional publication: new prefixes built privately; any failure
@@ -161,11 +164,12 @@ impl Incremental {
                 disjoint_regions(&damage.regions,self.output)
             };
             if regions.is_empty() {
-                next.push(Arc::clone(&self.prefixes[index]));
+                next.push(self.prefixes[index].clone());
                 continue;
             }
             let lower = next.last().unwrap_or(&self.black);
-            let mut pixels = if structural { (**lower).clone() } else { (*self.prefixes[index]).clone() };
+            let mut pixels = if structural { lower.clone() } else { self.prefixes[index].clone() };
+            work.full_prefix_clone_pixels+=self.w*self.h;
             let pass = if let Some(g)=layer.glass {
                 if let Some(crop)=sampling_crop(&regions,d.bounds,g,self.w,self.h) {
                     let pass=GlassPass::new(g,d.bounds,crop,lower,self.w,self.h)?;
@@ -181,7 +185,7 @@ impl Incremental {
                 let (x0,y0,x1,y1) = r.edges();
                 for y in y0..y1 { for x in x0..x1 {
                     let i = y as usize*self.w+x as usize;
-                    let mut p = lower[i];
+                    let mut p = lower.get(i);
                     if d.bounds.contains(x,y) {
                         if let Some(pass) = &pass {
                             if let Some(value) = pass.pixel(x,y,d.bounds,self.w,self.h)? {
@@ -191,12 +195,15 @@ impl Incremental {
                         }
                         p = over(p,layer.placed.sample(x,y));
                     }
-                    pixels[i]=p;
+                    work.cow_copied_pixels+=pixels.set(i,p);
                     work.prefix_pixels += 1;
                 }}
             }
-            next.push(Arc::new(pixels));
+            next.push(pixels);
         }
+        // All fallible rendering has completed; publish only changed blocks.
+        work.published_pixels=next.last().unwrap_or(&self.black).publish(
+            self.prefixes.last().unwrap_or(&self.black),&mut self.output_pixels);
         self.previous=layers;
         self.descriptions=desc;
         self.prefixes=next;

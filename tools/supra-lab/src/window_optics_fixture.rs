@@ -90,6 +90,9 @@ pub fn incremental_experiment()->String {
     let mut full_plane_blur_samples=0;
     let mut decoded_channels=0;
     let mut full_plane_decoded_channels=0;
+    let mut cow_copied_pixels=0;
+    let mut full_prefix_clone_pixels=0;
+    let mut published_pixels=0;
     for step in 0..24 {
         let mut next:Vec<_>=layers.iter().map(clone_layer).collect();
         next[1].placed.x += (step/3)%8;
@@ -105,11 +108,15 @@ pub fn incremental_experiment()->String {
         full_plane_blur_samples += work.full_plane_blur_samples;
         decoded_channels += work.decoded_channels;
         full_plane_decoded_channels += work.full_plane_decoded_channels;
+        cow_copied_pixels += work.cow_copied_pixels;
+        full_prefix_clone_pixels += work.full_prefix_clone_pixels;
+        published_pixels += work.published_pixels;
         full_pixels += (W*H*3) as usize;
     }
     assert!(blur_samples < full_plane_blur_samples);
     assert!(decoded_channels < full_plane_decoded_channels);
-    format!("{{\"schema_version\":3,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"blur_requests\":{blur_passes},\"cropped_blur_samples\":{blur_samples},\"full_plane_blur_samples\":{full_plane_blur_samples},\"decoded_channels\":{decoded_channels},\"full_plane_decoded_channels\":{full_plane_decoded_channels}}}\n")
+    assert!(cow_copied_pixels < full_prefix_clone_pixels);
+    format!("{{\"schema_version\":4,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"blur_requests\":{blur_passes},\"cropped_blur_samples\":{blur_samples},\"full_plane_blur_samples\":{full_plane_blur_samples},\"decoded_channels\":{decoded_channels},\"full_plane_decoded_channels\":{full_plane_decoded_channels},\"cow_copied_pixels\":{cow_copied_pixels},\"full_prefix_clone_pixels\":{full_prefix_clone_pixels},\"published_pixels\":{published_pixels}}}\n")
 }
 
 #[cfg(test)]
@@ -126,6 +133,8 @@ mod incremental_tests {
         let zero=c.update(layers.iter().map(clone_layer).collect()).unwrap();
         assert_eq!(zero.prefix_pixels,0);
         assert_eq!(zero.blur_passes,0);
+        assert_eq!(zero.cow_copied_pixels,0);
+        assert_eq!(zero.published_pixels,0);
         let mut moved:Vec<_>=layers.iter().map(clone_layer).collect();
         moved[2].placed.x+=1;
         let expected=compose(W,H,&moved).unwrap();
