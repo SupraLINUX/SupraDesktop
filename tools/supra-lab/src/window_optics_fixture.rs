@@ -18,7 +18,7 @@ fn mapped(c:&mut CpuCoordinator,w:u32,h:u32,bytes:&[u8])->Snapshot {
     c.snapshot(id).unwrap()
 }
 
-fn fixture_layers()->Vec<OpticalLayer> {
+pub(crate) fn fixture_layers()->Vec<OpticalLayer> {
     let mut c=CpuCoordinator::new(262144);
     let background:Vec<u8>=(0..W*H).flat_map(|i| {
         let (x,y)=(i%W,i/W);
@@ -73,7 +73,7 @@ mod tests {
 
 // Clones retain the same immutable pixel allocation and revision. Positions
 // change independently of the client commit, as a window manager would.
-fn clone_layer(layer:&OpticalLayer)->OpticalLayer {
+pub(crate) fn clone_layer(layer:&OpticalLayer)->OpticalLayer {
     let s=&layer.placed.snapshot;
     OpticalLayer { glass:layer.glass,placed:Placed { x:layer.placed.x,y:layer.placed.y,
         snapshot:Snapshot { window:s.window,generation:s.generation,state:s.state,content:s.content.clone() } } }

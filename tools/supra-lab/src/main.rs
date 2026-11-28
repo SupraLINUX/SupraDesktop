@@ -1,7 +1,13 @@
 use std::{env, fs, io, path::PathBuf};
 
 fn main() -> io::Result<()> {
-    let output = PathBuf::from(env::args_os().nth(1).unwrap_or_else(|| "evidence".into()));
+    let mut args=env::args_os().skip(1);
+    let first=args.next().unwrap_or_else(|| "evidence".into());
+    if first=="--optics-benchmark" {
+        let output=PathBuf::from(args.next().unwrap_or_else(|| "optics-benchmark.csv".into()));
+        return fs::write(output,supra_lab::optics_benchmark::csv());
+    }
+    let output = PathBuf::from(first);
     fs::create_dir_all(&output)?;
     fs::write(output.join("geometry.ppm"), supra_lab::ppm())?;
     fs::write(output.join("blur.ppm"), supra_lab::optics::blur_fixture())?;

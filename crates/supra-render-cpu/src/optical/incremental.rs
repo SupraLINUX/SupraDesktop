@@ -125,11 +125,20 @@ fn sampling_crop(regions:&[Rect],bounds:Rect,g:Glass,w:usize,h:usize)->Option<Re
 
 impl Incremental {
     pub fn new(width:u32,height:u32) -> Result<Self,Error> {
+        Self::with_chunk_size(width,height,64)
+    }
+
+    /// Experimental policy for controlled CPU lab comparisons, not GPU tiles.
+    /// The default remains 64 until measurement justifies changing it.
+    pub fn with_chunk_size(width:u32,height:u32,chunk:usize) -> Result<Self,Error> {
+        if !(16..=512).contains(&chunk) || !chunk.is_power_of_two() {
+            return Err(Error::InvalidOutput);
+        }
         let output = Rect::new(0,0,width,height).ok_or(Error::InvalidOutput)?;
         let (w,h) = (width as usize,height as usize);
         let len = w.checked_mul(h).filter(|&n| n <= 262144).ok_or(Error::InvalidOutput)?;
         if width > 4096 || height > 4096 { return Err(Error::InvalidOutput); }
-        Ok(Self { output,w,h,black:Prefix::black(len),output_pixels:vec![[0,0,0,255];len],
+        Ok(Self { output,w,h,black:Prefix::black(len,chunk),output_pixels:vec![[0,0,0,255];len],
             prefixes:Vec::new(),previous:Vec::new(),descriptions:Vec::new() })
     }
 

@@ -40,3 +40,24 @@ jobs:
           path: evidence/
           retention-days: 7
           if-no-files-found: warn
+  optics-benchmark:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Same-run release benchmark
+        run: |
+          mkdir -p benchmark
+          rustc --version > benchmark/environment.txt
+          cargo --version >> benchmark/environment.txt
+          lscpu >> benchmark/environment.txt
+          cargo run --release --locked -p supra-lab -- --optics-benchmark benchmark/samples.csv
+          python3 tools/supra-lab/summarize_optics_benchmark.py benchmark/samples.csv > benchmark/summary.json
+          cat benchmark/summary.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: supra-lab-optics-benchmark
+          path: benchmark/
+          retention-days: 7
+          if-no-files-found: warn
