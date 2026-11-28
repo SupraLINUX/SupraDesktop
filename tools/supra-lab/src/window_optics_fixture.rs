@@ -86,6 +86,8 @@ pub fn incremental_experiment()->String {
     let mut optical_pixels=0;
     let mut blur_passes=0;
     let mut full_pixels=0;
+    let mut blur_samples=0;
+    let mut full_plane_blur_samples=0;
     for step in 0..24 {
         let mut next:Vec<_>=layers.iter().map(clone_layer).collect();
         next[1].placed.x += (step/3)%8;
@@ -97,9 +99,12 @@ pub fn incremental_experiment()->String {
         prefix_pixels += work.prefix_pixels;
         optical_pixels += work.optical_pixels;
         blur_passes += work.blur_passes;
+        blur_samples += work.blur_samples;
+        full_plane_blur_samples += work.full_plane_blur_samples;
         full_pixels += (W*H*3) as usize;
     }
-    format!("{{\"schema_version\":1,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"full_plane_blur_passes\":{blur_passes}}}\n")
+    assert!(blur_samples < full_plane_blur_samples);
+    format!("{{\"schema_version\":2,\"frames\":24,\"pixel_exact\":true,\"incremental_prefix_pixels\":{prefix_pixels},\"full_prefix_pixels\":{full_pixels},\"optical_pixels\":{optical_pixels},\"blur_requests\":{blur_passes},\"cropped_blur_samples\":{blur_samples},\"full_plane_blur_samples\":{full_plane_blur_samples}}}\n")
 }
 
 #[cfg(test)]

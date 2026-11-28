@@ -1,10 +1,10 @@
 //! Incremental prefix compositor. Whole-prefix buffers are retained for
-//! reference correctness; blur is full-plane only when a touched glass
-//! region needs it. No GPU or measured latency claim.
-use super::{Glass, OpticalLayer, decode, encode, sample};
+//! reference correctness; Gaussian passes evaluate a conservative crop.
+//! No GPU or measured latency claim.
+use super::{Glass, OpticalLayer, decode, encode};
 use crate::{Error, over};
 use supra_geometry::RoundedRect;
-use supra_glass::blur::gaussian;
+use supra_glass::blur::region::{Cropped,Region,gaussian_region};
 use supra_scene::{Layer, Rect, disjoint_regions, plan};
 use std::{collections::BTreeSet, sync::Arc};
 
@@ -16,8 +16,10 @@ pub struct Work {
     /// Actual prefix pixel evaluations, including copies from lower prefix.
     pub prefix_pixels: usize,
     pub optical_pixels: usize,
-    /// Number of complete RGB blur passes (not separable tap counts).
+    /// Number of RGB blur requests, not full-plane passes.
     pub blur_passes: usize,
+    pub blur_samples: usize,
+    pub full_plane_blur_samples: usize,
 }
 
 pub struct Incremental {
@@ -49,19 +51,19 @@ struct GlassPass {
     glass: Glass,
     shape: RoundedRect,
     original: [Vec<f64>;3],
-    blurred: [Vec<f64>;3],
+    blurred: [Cropped;3],
 }
 
 impl GlassPass {
-    fn new(g: Glass, bounds: Rect, lower: &[Pixel], w: usize,h: usize) -> Result<Self,Error> {
+    fn new(g: Glass, bounds: Rect, crop:Region, lower: &[Pixel], w: usize,h: usize) -> Result<Self,Error> {
         let (l,t,r,b) = bounds.edges();
         let shape = RoundedRect::new(f64::from(r-l),f64::from(b-t),g.radius,g.corner)
             .ok_or(Error::InvalidSurface)?;
         let original: [Vec<f64>;3] = std::array::from_fn(|c| lower.iter().map(|p| decode(p[c])).collect());
         let blurred = [
-            gaussian(&original[0],w,h,g.sigma).map_err(|_| Error::InvalidSurface)?,
-            gaussian(&original[1],w,h,g.sigma).map_err(|_| Error::InvalidSurface)?,
-            gaussian(&original[2],w,h,g.sigma).map_err(|_| Error::InvalidSurface)?,
+            gaussian_region(&original[0],w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?,
+            gaussian_region(&original[1],w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?,
+            gaussian_region(&original[2],w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?,
         ];
         Ok(Self { glass:g,shape,original,blurred })
     }
@@ -73,14 +75,41 @@ impl GlassPass {
         if coverage == 0.0 { return Ok(None); }
         let b = self.shape.boundary(lx+0.5,ly+0.5).ok_or(Error::InvalidSurface)?;
         let i = y as usize*w+x as usize;
+        let mut missing=false;
         let rgb = self.glass.material.compose(b.signed_distance,b.normal,coverage,
             std::array::from_fn(|c| self.original[c][i]),self.glass.reflection,
-            |offset| std::array::from_fn(|c| sample(&self.blurred[c],w,h,
-                f64::from(x)+offset[0],f64::from(y)+offset[1])))
+            |offset| std::array::from_fn(|c| {
+                crop_sample(&self.blurred[c],w,h,f64::from(x)+offset[0],f64::from(y)+offset[1])
+                    .unwrap_or_else(|| { missing=true; 0.0 })
+            }))
             .ok_or(Error::InvalidSurface)?;
+        if missing { return Err(Error::InvalidSurface); }
         let [r,g,b] = rgb.map(encode);
         Ok(Some([r,g,b,255]))
     }
+}
+
+fn crop_sample(p:&Cropped,w:usize,h:usize,x:f64,y:f64)->Option<f64> {
+    let x=x.clamp(0.0,(w-1) as f64);
+    let y=y.clamp(0.0,(h-1) as f64);
+    let (ix,iy)=(x.floor() as usize,y.floor() as usize);
+    let (jx,jy)=((ix+1).min(w-1),(iy+1).min(h-1));
+    let (fx,fy)=(x.fract(),y.fract());
+    let a=p.get(ix,iy)?*(1.0-fx)+p.get(jx,iy)?*fx;
+    let b=p.get(ix,jy)?*(1.0-fx)+p.get(jx,jy)?*fx;
+    Some((a*(1.0-fy)+b*fy).clamp(0.0,1.0))
+}
+
+fn sampling_crop(regions:&[Rect],bounds:Rect,g:Glass,w:usize,h:usize)->Option<Region> {
+    let mut clips=regions.iter().filter_map(|r| r.intersect(bounds));
+    let (mut l,mut t,mut r,mut b)=clips.next()?.edges();
+    for clip in clips {
+        let (x0,y0,x1,y1)=clip.edges();
+        l=l.min(x0); t=t.min(y0); r=r.max(x1); b=b.max(y1);
+    }
+    let halo=g.material.displacement_bound().ceil() as usize+1;
+    Some(Region{x0:(l as usize).saturating_sub(halo),y0:(t as usize).saturating_sub(halo),
+        x1:(r as usize+halo).min(w),y1:(b as usize+halo).min(h)})
 }
 
 impl Incremental {
@@ -129,11 +158,15 @@ impl Incremental {
             }
             let lower = next.last().unwrap_or(&self.black);
             let mut pixels = if structural { (**lower).clone() } else { (*self.prefixes[index]).clone() };
-            let touches = regions.iter().any(|r| r.intersect(d.bounds).is_some());
-            let pass = match (layer.glass,touches) {
-                (Some(g),true) => { work.blur_passes += 1; Some(GlassPass::new(g,d.bounds,lower,self.w,self.h)?) },
-                _ => None,
-            };
+            let pass = if let Some(g)=layer.glass {
+                if let Some(crop)=sampling_crop(&regions,d.bounds,g,self.w,self.h) {
+                    let pass=GlassPass::new(g,d.bounds,crop,lower,self.w,self.h)?;
+                    work.blur_passes+=1;
+                    work.blur_samples+=pass.blurred.iter().map(|p| p.horizontal_samples+p.vertical_samples).sum::<usize>();
+                    if g.sigma!=0.0 { work.full_plane_blur_samples+=6*self.w*self.h; }
+                    Some(pass)
+                } else { None }
+            } else { None };
             for r in regions {
                 let (x0,y0,x1,y1) = r.edges();
                 for y in y0..y1 { for x in x0..x1 {
