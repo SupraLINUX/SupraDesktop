@@ -1,7 +1,7 @@
 //! Optical renderer adapter using the same submission lifecycle as ordinary CPU.
 use super::{Boundary,Error,FrameToken,Placement};
 use supra_scene::Rect;
-use supra_window::{WindowId,cpu_content::CpuCoordinator};
+use supra_window::{WindowId,cpu_content::{CpuCoordinator,ingress::XdgIngress}};
 use crate::optical::{Glass,SignedOpticalLayer,incremental::{Incremental,Work}};
 
 #[derive(Clone,Copy,Debug,PartialEq)]
@@ -48,6 +48,10 @@ impl OpticalPresentation {
 
     pub fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
         self.boundary.complete(coordinator,token)
+    }
+
+    pub fn complete_ingress(&mut self,ingress:&mut XdgIngress,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+        self.boundary.complete_ingress(ingress,token)
     }
 
     pub fn discard(&mut self,token:&FrameToken)->Result<(),Error> {

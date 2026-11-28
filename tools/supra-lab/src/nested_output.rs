@@ -5,14 +5,15 @@ use supra_geometry::Corner;
 use supra_glass::material::Material;
 use supra_render_cpu::presentation::{OpticalPlacement,OpticalPresentation,Placement};
 use supra_render_cpu::optical::Glass;
-use supra_window::{Size,WindowId,clients::ClientId,cpu_content::{CpuCoordinator,Format,Layout,View}};
+use supra_window::{Size,WindowId,clients::ClientId,cpu_content::{ingress::XdgIngress,Format,Layout,View}};
 
 const W:u32=160;
 const H:u32=96;
 
-fn mapped(c:&mut CpuCoordinator,w:u32,h:u32,bytes:&[u8],callback:u64)->(ClientId,WindowId) {
+fn mapped(c:&mut XdgIngress,w:u32,h:u32,bytes:&[u8],callback:u64)->(ClientId,WindowId) {
     let client=c.connect().unwrap();
-    let id=c.create(client,1).unwrap();
+    let id=c.create_toplevel(client,1).unwrap();
+    c.commit(client,1,None).unwrap();
     let buffer=c.register_buffer(client,2).unwrap();
     c.configure(id,1,Size{width:w,height:h}).unwrap();
     c.acknowledge(client,1,1).unwrap();
@@ -33,7 +34,7 @@ fn expect_line(reader:&mut impl BufRead,expected:&str)->io::Result<()> {
 }
 
 fn run_frames(input:&mut impl Write,output:&mut impl BufRead,dir:&Path)->io::Result<()> {
-    let mut c=CpuCoordinator::new(262144);
+    let mut c=XdgIngress::new(262144);
     let background:Vec<u8>=(0..W*H).flat_map(|i| {
         if (i%W/10+i/W/10)%2==0 {[65,90,180,255]} else {[170,120,35,255]}
     }).collect();
@@ -41,7 +42,7 @@ fn run_frames(input:&mut impl Write,output:&mut impl BufRead,dir:&Path)->io::Res
     let (client,pane)=mapped(&mut c,84,54,&vec![0;84*54*4],20);
     let glass=Glass{sigma:2.0,radius:14.0,corner:Corner::BezierG2,
         material:Material::new(10.0,8.0,1.0,[1.44,1.5,1.56],[0.8;3],0.08).unwrap(),reflection:[0.9;3]};
-    let mut p=OpticalPresentation::new(&c,W,H).unwrap();
+    let mut p=OpticalPresentation::new(c.coordinator(),W,H).unwrap();
     let mut previous=Vec::new();
     for n in 1..=2 {
         if n==2 {
@@ -50,7 +51,7 @@ fn run_frames(input:&mut impl Write,output:&mut impl BufRead,dir:&Path)->io::Res
         }
         let x=if n==1 {25} else {-8};
         let scene=[placement(bg,0,0,None),placement(pane,x,18,Some(glass))];
-        let frame=p.submit(&c,&scene).unwrap();
+        let frame=p.submit(c.coordinator(),&scene).unwrap();
         let pixels=p.pixels(&frame.token).unwrap();
         assert!(frame.work.optical_pixels>0);
         let rgba:Vec<u8>=pixels.iter().flatten().copied().collect();
@@ -64,7 +65,7 @@ fn run_frames(input:&mut impl Write,output:&mut impl BufRead,dir:&Path)->io::Res
         // A real parent wl_surface.frame callback is a drawing boundary,
         // not proof of physical scanout. No synthetic completion on error.
         expect_line(output,&format!("FRAME {n}"))?;
-        let callbacks=p.complete(&mut c,&frame.token).unwrap();
+        let callbacks=p.complete_ingress(&mut c,&frame.token).unwrap();
         let expected=if n==1 {vec![(bg,vec![10]),(pane,vec![20])]} else {vec![(pane,vec![21])]};
         assert_eq!(callbacks,expected);
         println!("SUPRA_NESTED_FRAME_{n}_COMPLETE");

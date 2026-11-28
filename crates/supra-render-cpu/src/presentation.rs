@@ -1,7 +1,7 @@
 //! Single-output CPU presentation adapter. The trusted output backend owns
 //! submission completion and visibility policy; no wire or GPU timing claims.
 use std::sync::Arc;
-use supra_window::{WindowId, cpu_content::{CoordinatorIdentity,CpuCoordinator}};
+use supra_window::{WindowId, cpu_content::{CoordinatorIdentity,CpuCoordinator,ingress::XdgIngress}};
 use crate::{Frame,SignedPlaced};
 
 const MAX_PLACEMENTS:usize=256;
@@ -91,9 +91,20 @@ impl Boundary {
     }
 
     fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
-        if !coordinator.matches_identity(&self.owner) { return Err(Error::WrongCoordinator); }
+        let matches=coordinator.matches_identity(&self.owner);
+        self.complete_with(matches,token,|visible|coordinator.frame_ready_batch(visible))
+    }
+
+    fn complete_ingress(&mut self,ingress:&mut XdgIngress,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+        let matches=ingress.coordinator().matches_identity(&self.owner);
+        self.complete_with(matches,token,|visible|ingress.frame_ready_batch(visible))
+    }
+
+    fn complete_with(&mut self,matches:bool,token:&FrameToken,finish:impl FnOnce(&[(WindowId,u64)])
+        ->Result<Vec<(WindowId,Vec<u64>)>,supra_window::cpu_content::Error>)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+        if !matches { return Err(Error::WrongCoordinator); }
         let pending=self.pending(token)?;
-        let ready=coordinator.frame_ready_batch(&pending.visible).map_err(Error::Logical)?;
+        let ready=finish(&pending.visible).map_err(Error::Logical)?;
         self.pending=None;
         Ok(ready)
     }
@@ -135,6 +146,10 @@ impl CpuPresentation {
     /// Accepted backend boundary, not presentation-time or storage release.
     pub fn complete(&mut self,coordinator:&mut CpuCoordinator,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
         self.boundary.complete(coordinator,token)
+    }
+
+    pub fn complete_ingress(&mut self,ingress:&mut XdgIngress,token:&FrameToken)->Result<Vec<(WindowId,Vec<u64>)>,Error> {
+        self.boundary.complete_ingress(ingress,token)
     }
 
     pub fn discard(&mut self,token:&FrameToken)->Result<(),Error> {
