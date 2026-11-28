@@ -18,7 +18,7 @@ fn mapped(c:&mut CpuCoordinator,callback:u64)->(ClientId,WindowId,BufferId) {
     (client,id,buffer)
 }
 
-fn at(window:WindowId,x:u32,eligible:bool)->Placement {
+fn at(window:WindowId,x:i64,eligible:bool)->Placement {
     Placement{window,x,y:0,callback_eligible:eligible}
 }
 
@@ -97,4 +97,21 @@ fn invalid_scene_and_foreign_output_token_leave_callback_pending() {
     assert_eq!(p.complete(&mut c,&b.token),Err(Error::UnknownFrame));
     other.discard(&b.token).unwrap();
     assert_eq!(p.complete(&mut c,&a.token).unwrap(),vec![(id,vec![10])]);
+}
+
+#[test]
+fn negative_partial_visibility_and_fully_clipped_callback_policy() {
+    let mut c=CpuCoordinator::new(128);
+    let (client,id,_)=mapped(&mut c,10);
+    let mut p=CpuPresentation::new(&c,2,1,2).unwrap();
+    let off=p.submit(&c,&[at(id,-2,true)]).unwrap();
+    assert_eq!(p.pixels(&off.token).unwrap(),&[[0,0,0,255];2]);
+    assert!(p.complete(&mut c,&off.token).unwrap().is_empty());
+    let partial=p.submit(&c,&[at(id,-1,true)]).unwrap();
+    assert_eq!(p.pixels(&partial.token).unwrap(),&[[255,0,0,255],[0,0,0,255]]);
+    assert_eq!(p.complete(&mut c,&partial.token).unwrap(),vec![(id,vec![10])]);
+    c.frame(client,1,11).unwrap();
+    c.commit(client,1,None).unwrap();
+    let next=p.submit(&c,&[at(id,-1,true)]).unwrap();
+    assert_eq!(p.complete(&mut c,&next.token).unwrap(),vec![(id,vec![11])]);
 }

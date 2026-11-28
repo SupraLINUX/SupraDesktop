@@ -1,8 +1,10 @@
 //! Reference software composition of retained window snapshots.
-//! Output scale 1, nonnegative placements, nearest sample, opaque black
+//! Output scale 1, signed CPU placements, nearest sample, opaque black
 //! background, integer premultiplied source-over. No GPU or color management.
 pub mod optical;
 pub mod presentation;
+mod placement;
+pub use placement::SignedPlaced;
 use supra_scene::{Layer, Rect, disjoint_regions, plan};
 use supra_window::{cpu_content::{Format, Snapshot}, surface::Transform};
 
@@ -27,10 +29,14 @@ impl Placed {
     }
 
     fn sample(&self, x: u32, y: u32) -> [u8; 4] {
-        let s = &self.snapshot;
+        sample_local(&self.snapshot,x-self.x,y-self.y)
+    }
+}
+
+fn sample_local(s:&Snapshot,x:u32,y:u32)->[u8;4] {
         let l = s.content.layout();
         let scale = s.state.scale as u32;
-        let (u, v) = ((x-self.x)*scale, (y-self.y)*scale);
+        let (u, v) = (x*scale,y*scale);
         let (w, h) = (l.width, l.height);
         // Surface-to-buffer mapping: flip about vertical axis before CCW
         // rotation. Sampling this mapping applies the inverse to display.
@@ -49,7 +55,6 @@ impl Placed {
         let a = if l.format == Format::Xrgb8888 { 255 } else { p[3] };
         // Invalid premultiplication is clamped, not allowed to overflow.
         [p[2].min(a),p[1].min(a),p[0].min(a),a]
-    }
 }
 
 fn over(dst: [u8;4], src: [u8;4]) -> [u8;4] {
@@ -61,7 +66,7 @@ fn over(dst: [u8;4], src: [u8;4]) -> [u8;4] {
     out
 }
 
-fn pixel(x: u32, y: u32, layers: &[Layer], surfaces: &[Placed]) -> [u8;4] {
+fn pixel(x: u32, y: u32, layers: &[Layer], surfaces: &[SignedPlaced]) -> [u8;4] {
     let mut p = [0,0,0,255];
     for (l,s) in layers.iter().zip(surfaces) {
         if l.bounds.contains(x,y) { p = over(p,s.sample(x,y)); }
@@ -74,7 +79,7 @@ pub struct Frame {
     output: Rect,
     rgba: Vec<[u8;4]>,
     layers: Vec<Layer>,
-    surfaces: Vec<Placed>,
+    surfaces: Vec<SignedPlaced>,
 }
 
 impl Frame {
@@ -94,14 +99,30 @@ impl Frame {
     /// Count actual recomposited output pixels, not GPU work or timing.
     /// All validation precedes mutation; each damaged pixel is written once.
     pub fn update(&mut self, surfaces: Vec<Placed>) -> Result<usize, Error> {
-        let layers = surfaces.iter().map(Placed::layer).collect::<Result<Vec<_>,_>>()?;
+        self.update_signed(surfaces.into_iter().map(SignedPlaced::from).collect())
+    }
+
+    /// Physical output coordinates with signed window origins. Validate even
+    /// fully clipped placements and reject duplicate IDs before filtering.
+    pub fn update_signed(&mut self, input:Vec<SignedPlaced>)->Result<usize,Error> {
+        let mut ids=std::collections::BTreeSet::new();
+        let mut layers=Vec::new();
+        let mut surfaces=Vec::new();
+        for surface in input {
+            if !ids.insert(surface.snapshot.window) { return Err(Error::DuplicateWindow); }
+            if let Some(layer)=surface.visible_layer(self.output)? {
+                layers.push(layer);
+                surfaces.push(surface);
+            }
+        }
         let damage = plan(self.output,self.output,&self.layers,&layers).map_err(|_| Error::DuplicateWindow)?;
         // Defend against a stale/reused revision from a different producer:
         // force redraw if a nominally unchanged layer has different storage
         // or surface state. No duplicate mutable authority for revisions.
         let ambiguous = self.layers.iter().zip(&layers).zip(self.surfaces.iter().zip(&surfaces))
             .any(|((a,b),(old,new))| a == b &&
-                (!old.snapshot.content.same_storage(&new.snapshot.content) || old.snapshot.state != new.snapshot.state));
+                (!old.snapshot.content.same_storage(&new.snapshot.content) || old.snapshot.state != new.snapshot.state
+                 || old.x != new.x || old.y != new.y));
         let regions = if ambiguous || damage.full_redraw { vec![self.output] }
                       else { disjoint_regions(&damage.regions,self.output) };
         let mut count = 0;

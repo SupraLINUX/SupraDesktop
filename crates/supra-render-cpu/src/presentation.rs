@@ -2,15 +2,15 @@
 //! submission completion and visibility policy; no wire or GPU timing claims.
 use std::sync::Arc;
 use supra_window::{WindowId, cpu_content::{CoordinatorIdentity,CpuCoordinator}};
-use crate::{Frame,Placed};
+use crate::{Frame,SignedPlaced};
 
 const MAX_PLACEMENTS:usize=256;
 
 #[derive(Clone,Copy,Debug,PartialEq,Eq)]
 pub struct Placement {
     pub window:WindowId,
-    pub x:u32,
-    pub y:u32,
+    pub x:i64,
+    pub y:i64,
     /// Trusted compositor policy: false for a fully obscured surface.
     /// Geometry is additionally checked against the actual output.
     pub callback_eligible:bool,
@@ -66,14 +66,13 @@ impl CpuPresentation {
         let mut visible=Vec::new();
         for p in placements {
             let snapshot=coordinator.snapshot(p.window).ok_or(Error::UnknownWindow)?;
-            let surface=Placed{x:p.x,y:p.y,snapshot};
-            let layer=surface.layer().map_err(Error::Render)?;
-            if p.callback_eligible && layer.bounds.intersect(self.frame.output).is_some() {
-                visible.push((p.window,layer.revision));
+            let surface=SignedPlaced{x:p.x,y:p.y,snapshot};
+            if let Some(layer)=surface.visible_layer(self.frame.output).map_err(Error::Render)? {
+                if p.callback_eligible { visible.push((p.window,layer.revision)); }
             }
             surfaces.push(surface);
         }
-        let recomposited_pixels=self.frame.update(surfaces).map_err(Error::Render)?;
+        let recomposited_pixels=self.frame.update_signed(surfaces).map_err(Error::Render)?;
         let token=FrameToken(Arc::new(()));
         self.pending=Some(Pending{token:token.clone(),visible});
         Ok(Submission{token,recomposited_pixels})
