@@ -2,6 +2,7 @@
 //! Output scale 1, nonnegative placements, nearest sample, opaque black
 //! background, integer premultiplied source-over. No GPU or color management.
 pub mod optical;
+pub mod presentation;
 use supra_scene::{Layer, Rect, disjoint_regions, plan};
 use supra_window::{cpu_content::{Format, Snapshot}, surface::Transform};
 

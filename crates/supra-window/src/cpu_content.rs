@@ -132,6 +132,11 @@ pub struct CpuCommit {
     pub release: Option<Completion>,
 }
 
+/// Opaque instance identity for adapters with asynchronous work. Holding
+/// a clone prevents identity reuse after the originating coordinator dies.
+#[derive(Clone)]
+pub struct CoordinatorIdentity(Arc<()>);
+
 /// Owns logical coordinator; never exposes a mutable bypass. The logical
 /// surface remains the sole authority on mapping/identity; this map owns
 /// only the independent copied content for each mapped surface.
@@ -139,13 +144,18 @@ pub struct CpuCoordinator {
     logical: Coordinator,
     content: BTreeMap<WindowId, Content>,
     budget: CopyBudget,
+    identity: CoordinatorIdentity,
 }
 
 impl CpuCoordinator {
     pub fn new(max_bytes: usize) -> Self {
-        Self { logical: Coordinator::default(), content: BTreeMap::new(), budget: CopyBudget::new(max_bytes) }
+        Self { logical: Coordinator::default(), content: BTreeMap::new(), budget: CopyBudget::new(max_bytes), identity: CoordinatorIdentity(Arc::new(())) }
     }
 
+    pub fn identity(&self) -> CoordinatorIdentity { self.identity.clone() }
+    pub fn matches_identity(&self, identity: &CoordinatorIdentity) -> bool {
+        Arc::ptr_eq(&self.identity.0, &identity.0)
+    }
     pub fn used_bytes(&self) -> usize { self.budget.used() }
     pub fn connect(&mut self) -> Result<ClientId, Error> { Ok(self.logical.connect()?) }
     pub fn create(&mut self, c: ClientId, object: u32) -> Result<WindowId, Error> {
@@ -221,6 +231,31 @@ impl CpuCoordinator {
 
     pub fn frame_ready(&mut self, id: WindowId, generation: u64, visible: bool) -> Result<Vec<u64>, Error> {
         Ok(self.logical.frame_ready(id, generation, visible)?)
+    }
+
+    /// Process an adapter's recorded visible frame boundary as one serialized
+    /// batch. Destroyed/unmapped windows do not receive notifications.
+    /// The existing scheduler owns generation epochs and callback queues.
+    pub fn frame_ready_batch(&mut self, boundaries: &[(WindowId, u64)]) -> Result<Vec<(WindowId, Vec<u64>)>, Error> {
+        let mut seen = std::collections::BTreeSet::new();
+        for &(id, generation) in boundaries {
+            if generation == 0 || !seen.insert(id) {
+                return Err(crate::commit::Error::InvalidGeneration.into());
+            }
+            if self.logical.surface(id).is_some_and(|s| generation > s.generation()) {
+                return Err(crate::commit::Error::InvalidGeneration.into());
+            }
+        }
+        let mut ready = Vec::new();
+        for &(id, generation) in boundaries {
+            if self.content.contains_key(&id) {
+                // All live generations were checked above under the same
+                // exclusive borrow; no state changes can invalidate them.
+                let callbacks = self.logical.frame_ready(id, generation, true)?;
+                if !callbacks.is_empty() { ready.push((id, callbacks)); }
+            }
+        }
+        Ok(ready)
     }
 
     pub fn destroy(&mut self, c: ClientId, object: u32) -> Result<Vec<u64>, Error> {
