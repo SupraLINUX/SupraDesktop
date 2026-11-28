@@ -1,7 +1,7 @@
 //! Incremental prefix compositor with copy-on-write linear pixel chunks.
 //! Gaussian passes evaluate a conservative crop.
 //! No GPU or measured latency claim.
-use super::{Glass, OpticalLayer, decode, encode};
+use super::{Glass, OpticalLayer, SignedOpticalLayer, decode, encode};
 use crate::{Error, over};
 use supra_geometry::RoundedRect;
 use supra_glass::blur::region::{Cropped,Region,gaussian_region_cropped,source_region};
@@ -33,23 +33,8 @@ pub struct Incremental {
     black: Prefix,
     output_pixels: Vec<Pixel>,
     prefixes: Vec<Prefix>,
-    previous: Vec<OpticalLayer>,
+    previous: Vec<SignedOpticalLayer>,
     descriptions: Vec<Layer>,
-}
-
-fn description(layer: &OpticalLayer) -> Result<Layer,Error> {
-    let mut d = layer.placed.layer()?;
-    if let Some(g) = layer.glass {
-        if !g.sigma.is_finite() || !(0.0..=64.0).contains(&g.sigma)
-            || !g.radius.is_finite() || g.radius < 0.0
-            || g.reflection.iter().any(|v| !v.is_finite() || !(0.0..=1.0).contains(v)) {
-            return Err(Error::InvalidSurface);
-        }
-        // Gaussian truncation plus maximum refraction and one bilinear texel.
-        d.backdrop_radius = Some((3.0*g.sigma).ceil() as u32
-            + g.material.displacement_bound().ceil() as u32 + 1);
-    }
-    Ok(d)
 }
 
 struct GlassPass {
@@ -61,10 +46,7 @@ struct GlassPass {
 }
 
 impl GlassPass {
-    fn new(g: Glass, bounds: Rect, crop:Region, lower: &Prefix, w: usize,h: usize) -> Result<Self,Error> {
-        let (l,t,r,b) = bounds.edges();
-        let shape = RoundedRect::new(f64::from(r-l),f64::from(b-t),g.radius,g.corner)
-            .ok_or(Error::InvalidSurface)?;
+    fn new(g:Glass,shape:RoundedRect,crop:Region,lower:&Prefix,w:usize,h:usize)->Result<Self,Error> {
         let source=source_region(w,h,g.sigma,crop).map_err(|_| Error::InvalidSurface)?;
         let original: [Vec<f64>;3] = std::array::from_fn(|c| (source.y0..source.y1).flat_map(|y|
             (source.x0..source.x1).map(move |x| decode(lower.get(y*w+x)[c]))).collect());
@@ -76,9 +58,8 @@ impl GlassPass {
         Ok(Self { glass:g,shape,original,source,blurred })
     }
 
-    fn pixel(&self, x:u32,y:u32,bounds:Rect,w:usize,h:usize) -> Result<Option<Pixel>,Error> {
-        let (l,t,_,_) = bounds.edges();
-        let (lx,ly) = (f64::from(x-l),f64::from(y-t));
+    fn pixel(&self,x:u32,y:u32,layer:&SignedOpticalLayer,w:usize,h:usize)->Result<Option<Pixel>,Error> {
+        let (lx,ly)=layer.local(x,y);
         let coverage = self.shape.coverage(lx,ly,1.0);
         if coverage == 0.0 { return Ok(None); }
         let b = self.shape.boundary(lx+0.5,ly+0.5).ok_or(Error::InvalidSurface)?;
@@ -150,9 +131,22 @@ impl Incremental {
     /// leaves prior frame unchanged. Limit retained prefix count to 16.
     pub fn update(&mut self, layers:Vec<OpticalLayer>) -> Result<Work,Error> {
         if layers.len()>16 { return Err(Error::InvalidOutput); }
-        let desc = layers.iter().map(description).collect::<Result<Vec<_>,_>>()?;
-        let mut ids = BTreeSet::new();
-        if !desc.iter().all(|l| ids.insert(l.id)) { return Err(Error::DuplicateWindow); }
+        for layer in &layers { layer.placed.layer()?; }
+        self.update_signed(layers.into_iter().map(SignedOpticalLayer::from).collect())
+    }
+
+    pub fn update_signed(&mut self,input:Vec<SignedOpticalLayer>)->Result<Work,Error> {
+        if input.len()>16 { return Err(Error::InvalidOutput); }
+        let mut ids=BTreeSet::new();
+        let mut layers=Vec::new();
+        let mut desc=Vec::new();
+        for layer in input {
+            if !ids.insert(layer.placed.snapshot.window) { return Err(Error::DuplicateWindow); }
+            if let Some(d)=layer.description(self.output)? {
+                layers.push(layer);
+                desc.push(d);
+            }
+        }
         let structural = !self.descriptions.iter().map(|l| l.id).eq(desc.iter().map(|l| l.id));
         let mut next:Vec<Prefix> = Vec::with_capacity(layers.len());
         let mut work = Work::default();
@@ -165,7 +159,8 @@ impl Incremental {
                 let old = &self.previous[index];
                 if old.glass != layer.glass || (self.descriptions[index] == d &&
                     (!old.placed.snapshot.content.same_storage(&layer.placed.snapshot.content)
-                     || old.placed.snapshot.state != layer.placed.snapshot.state)) { force = true; }
+                     || old.placed.snapshot.state != layer.placed.snapshot.state
+                     || old.placed.x != layer.placed.x || old.placed.y != layer.placed.y)) { force = true; }
             }
             let regions = if force { vec![self.output] } else {
                 let damage = plan(self.output,self.output,&self.descriptions[..=index],&desc[..=index])
@@ -181,7 +176,7 @@ impl Incremental {
             work.full_prefix_clone_pixels+=self.w*self.h;
             let pass = if let Some(g)=layer.glass {
                 if let Some(crop)=sampling_crop(&regions,d.bounds,g,self.w,self.h) {
-                    let pass=GlassPass::new(g,d.bounds,crop,lower,self.w,self.h)?;
+                    let pass=GlassPass::new(g,layer.shape(g)?,crop,lower,self.w,self.h)?;
                     work.blur_passes+=1;
                     work.decoded_channels+=pass.original.iter().map(Vec::len).sum::<usize>();
                     work.full_plane_decoded_channels+=3*self.w*self.h;
@@ -197,7 +192,7 @@ impl Incremental {
                     let mut p = lower.get(i);
                     if d.bounds.contains(x,y) {
                         if let Some(pass) = &pass {
-                            if let Some(value) = pass.pixel(x,y,d.bounds,self.w,self.h)? {
+                            if let Some(value) = pass.pixel(x,y,layer,self.w,self.h)? {
                                 p = value;
                                 work.optical_pixels += 1;
                             }

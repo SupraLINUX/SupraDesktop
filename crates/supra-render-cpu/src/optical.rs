@@ -2,10 +2,10 @@
 //! The backdrop is the completed lower prefix, never the output being
 //! written. Color assumes sRGB for opaque prefix conversion; ordinary
 //! window blending retains the CPU renderer's encoded-space contract.
-use super::{Error, Placed, over};
+use super::{Error, Placed, SignedPlaced, over};
 use supra_geometry::{Corner, RoundedRect};
 use supra_glass::{blur::gaussian, material::Material};
-use supra_scene::Rect;
+use supra_scene::{Layer,Rect};
 use std::collections::BTreeSet;
 
 pub mod incremental;
@@ -22,6 +22,58 @@ pub struct Glass {
 pub struct OpticalLayer {
     pub placed: Placed,
     pub glass: Option<Glass>,
+}
+
+/// The original material geometry is independent of the visible crop.
+pub struct SignedOpticalLayer {
+    pub placed: SignedPlaced,
+    pub glass: Option<Glass>,
+}
+
+impl From<OpticalLayer> for SignedOpticalLayer {
+    fn from(value:OpticalLayer)->Self {
+        Self{placed:value.placed.into(),glass:value.glass}
+    }
+}
+
+impl SignedOpticalLayer {
+    pub(crate) fn description(&self,output:Rect)->Result<Option<Layer>,Error> {
+        let mut d=self.placed.visible_layer(output)?;
+        if let Some(g)=self.glass {
+            if !g.sigma.is_finite() || !(0.0..=64.0).contains(&g.sigma)
+                || !g.radius.is_finite() || g.radius<0.0
+                || g.reflection.iter().any(|v|!v.is_finite() || !(0.0..=1.0).contains(v)) {
+                return Err(Error::InvalidSurface);
+            }
+            self.shape(g)?;
+            if let Some(layer)=&mut d {
+                layer.backdrop_radius=Some((3.0*g.sigma).ceil() as u32
+                    +g.material.displacement_bound().ceil() as u32+1);
+            }
+        }
+        Ok(d)
+    }
+
+    fn shape(&self,g:Glass)->Result<RoundedRect,Error> {
+        let s=&self.placed.snapshot;
+        let size=s.content.layout().logical_size(s.state).map_err(|_|Error::InvalidSurface)?;
+        RoundedRect::new(f64::from(size.width),f64::from(size.height),g.radius,g.corner)
+            .ok_or(Error::InvalidSurface)
+    }
+
+    fn local(&self,x:u32,y:u32)->(f64,f64) {
+        // Only called for pixels inside the validated clip.
+        ((i64::from(x)-self.placed.x) as f64,(i64::from(y)-self.placed.y) as f64)
+    }
+}
+
+fn borrowed_unsigned(layer:&OpticalLayer)->Result<SignedOpticalLayer,Error> {
+    // Preserve the prior unsigned geometry validation.
+    layer.placed.layer()?;
+    let p=&layer.placed;
+    let s=&p.snapshot;
+    Ok(SignedOpticalLayer{placed:SignedPlaced{x:i64::from(p.x),y:i64::from(p.y),
+        snapshot:supra_window::cpu_content::Snapshot{window:s.window,generation:s.generation,state:s.state,content:s.content.clone()}},glass:layer.glass})
 }
 
 fn decode(v: u8) -> f64 {
@@ -48,6 +100,11 @@ fn sample(p: &[f64], w: usize, h: usize, x: f64, y: f64) -> f64 {
 /// Small reference output, hard capped to bound full-frame floating point
 /// scratch memory. Returns a new frame or error, never partial publication.
 pub fn compose(width: u32, height: u32, layers: &[OpticalLayer]) -> Result<Vec<[u8;4]>,Error> {
+    let layers=layers.iter().map(borrowed_unsigned).collect::<Result<Vec<_>,_>>()?;
+    compose_signed(width,height,&layers)
+}
+
+pub fn compose_signed(width:u32,height:u32,layers:&[SignedOpticalLayer])->Result<Vec<[u8;4]>,Error> {
     let output = Rect::new(0,0,width,height).ok_or(Error::InvalidOutput)?;
     let (w,h) = (width as usize,height as usize);
     let len = w.checked_mul(h).filter(|&n| n <= 262144).ok_or(Error::InvalidOutput)?;
@@ -56,17 +113,12 @@ pub fn compose(width: u32, height: u32, layers: &[OpticalLayer]) -> Result<Vec<[
     let mut frame = vec![[0,0,0,255];len];
     for layer in layers {
         let placed = &layer.placed;
-        let geometry = placed.layer()?;
-        if !ids.insert(geometry.id) { return Err(Error::DuplicateWindow); }
-        let Some(clip) = geometry.bounds.intersect(output) else { continue; };
+        if !ids.insert(placed.snapshot.window) { return Err(Error::DuplicateWindow); }
+        let Some(geometry)=layer.description(output)? else { continue; };
+        let clip=geometry.bounds;
         let (x0,y0,x1,y1) = clip.edges();
         if let Some(glass) = layer.glass {
-            let (left,top,right,bottom) = geometry.bounds.edges();
-            let shape = RoundedRect::new(f64::from(right-left),f64::from(bottom-top),glass.radius,glass.corner)
-                .ok_or(Error::InvalidSurface)?;
-            if glass.reflection.iter().any(|v| !v.is_finite() || !(0.0..=1.0).contains(v)) {
-                return Err(Error::InvalidSurface);
-            }
+            let shape=layer.shape(glass)?;
             // Freeze lower prefix in independent linear planes BEFORE modifying
             // frame. Every sample, including nested glass, uses this prefix.
             let original: [Vec<f64>;3] = std::array::from_fn(|c| frame.iter().map(|p| decode(p[c])).collect());
@@ -77,7 +129,7 @@ pub fn compose(width: u32, height: u32, layers: &[OpticalLayer]) -> Result<Vec<[
             ];
             for y in y0..y1 {
                 for x in x0..x1 {
-                    let (lx,ly) = (f64::from(x-left),f64::from(y-top));
+                    let (lx,ly)=layer.local(x,y);
                     let coverage = shape.coverage(lx,ly,1.0);
                     if coverage == 0.0 { continue; }
                     let b = shape.boundary(lx+0.5,ly+0.5).ok_or(Error::InvalidSurface)?;
